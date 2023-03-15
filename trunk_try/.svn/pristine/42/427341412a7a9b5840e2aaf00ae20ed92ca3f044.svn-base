@@ -1,0 +1,254 @@
+import React, { Component } from 'react';
+import { Alert, Button, TextInput, View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { LoginAPI } from './functions';
+import Loader from './Loader';
+import { LinearGradient } from 'expo-linear-gradient';
+import { customstyles } from "../customstyle";
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
+class LoginScreen extends Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            email: '',
+            password: '',
+            username_err: '',
+            password_err: '',
+            api_resp: '',
+            isLoading: false,
+        };
+    }
+
+    validateInput() {
+        const { email, password } = this.state;
+        let pattern = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w\w+)+$/;
+        let isValid = true;
+        //Alert.alert('Credentials', `${username} + ${password}`);
+        if ((email == '')) {
+            this.setState({
+                username_err: 'Username is required'
+            })
+            isValid = false;
+            return;
+        } else {
+            this.setState({
+                username_err: ''
+            })
+        }
+
+        if (pattern.test(email) === false) {
+            this.setState({
+                username_err: 'Username is not valid'
+            })
+            isValid = false;
+            return;
+        } else {
+            this.setState({
+                username_err: ''
+            })
+        }
+
+        if ((password == '')) {
+            this.setState({
+                password_err: 'Password is required'
+            })
+            isValid = false;
+            return;
+        } else {
+            this.setState({
+                password_err: ''
+            })
+        }
+
+        if (isValid) {
+            //console.log('Login Logic');
+            this.onLogin();
+        }
+    }
+
+    onLogin() {
+        let data = {
+            email: this.state.email,
+            password: this.state.password,
+            api_url: 'login'
+        }
+        this.setState({
+            isLoading: true,
+        })
+        var response = LoginAPI(data)
+            .then(res => {
+                //console.log(res);
+                let message = res.message;
+                let status = res.status;
+                let userDetails = res.user;
+                //console.log(userDetails);
+
+                if ((status == 1)) {
+                    AsyncStorage.setItem('userInfo', JSON.stringify(userDetails));
+                    //this.props.navigation.navigate('ProfileScreen');
+                    this.props.navigation.navigate('MyTabs', { userInfo: userDetails });
+                    this.setState({
+                        email: '',
+                        password: '',
+                        api_resp: '',
+                        isLoading: false,
+                    })
+                } else {
+                    this.setState({
+                        api_resp: message,
+                        api_color: customstyles.alertdanger,
+                        isLoading: false,
+                    })
+                    setTimeout(() => {
+                        this.setState({
+                            api_resp: '',
+                            api_color: '',
+                        })
+                    }, 5000);
+                }
+            })
+            .catch(error => console.log(error));
+    }
+
+    onMoveForgot = () => {
+        this.props.navigation.navigate('Forgot')
+    }
+    signupNavigation = (user_id) => {
+        this.props.navigation.navigate('Signup');
+    }
+
+    render() {
+        return (
+            <LinearGradient colors={['#663792', '#3d418b', '#0a4487']} start={{ x: 0, y: .8 }} end={{ x: 1, y: 1 }} style={styles.linearGradient}>
+                <View style={customstyles.logincontainer}>
+                    {/* <TouchableOpacity onPress={() => this.props.navigation.goBack()} style={[customstyles.btnWhitecircle, { width: 36, height: 36, marginBottom: 30 }]}>
+                        <Ionicons name="md-chevron-back-outline" size={24} color="#663792" />
+                    </TouchableOpacity> */}
+
+                    <View style={{ paddingVertical: 20 }}>
+                        <Text style={customstyles.headingWhite}>Login</Text>
+                    </View>
+                    {
+                        this.state.api_resp.length > 0 &&
+                        <Text style={customstyles.alertdanger}>{this.state.api_resp}</Text>
+                    }
+
+
+                    <TextInput
+                        autoCapitalize="none"
+                        value={this.state.email}
+                        onChangeText={(email) => this.setState({ email })}
+                        placeholder={'Username'}
+                        style={customstyles.input}
+                        placeholderTextColor="#fff"
+                    />
+                    {
+                        this.state.username_err.length > 0 &&
+                        <Text style={customstyles.alertdanger}>{this.state.username_err}</Text>
+                    }
+
+                    <TextInput
+                        autoCapitalize="none"
+                        value={this.state.password}
+                        onChangeText={(password) => this.setState({ password })}
+                        placeholder={'Password'}
+                        secureTextEntry={true}
+                        style={customstyles.input}
+                        placeholderTextColor="#fff"
+                    />
+                    {
+                        this.state.password_err.length > 0 &&
+                        <Text style={customstyles.alertdanger}>{this.state.password_err}</Text>
+                    }
+
+                    <View style={customstyles.textRight}>
+                        <TouchableOpacity onPress={this.onMoveForgot}>
+                            <Text style={{ ...customstyles.labelwhite, ...customstyles.underline, ...customstyles.textRight }}>Forgot Password</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity onPress={this.validateInput.bind(this)}>
+                        <View
+                            style={{ ...styles.button, ...customstyles.shadowBlock, backgroundColor: this.state.isLoading ? "#fff" : "#FFF", }}
+                        >
+                            <Text style={styles.buttonText}>
+                                {this.state.isLoading ? "LOGIN..." : "LOGIN"}
+                            </Text>
+                            {this.state.isLoading && <Loader />}
+                        </View>
+                    </TouchableOpacity>
+
+                    <View style={{ ...customstyles.rowverticalcenter, ...customstyles.mt10 }}>
+                        <Text style={customstyles.labelwhite}>Don't have an account? </Text>
+                        <Text>
+                            <TouchableOpacity onPress={this.signupNavigation}>
+                                <Text style={{ ...customstyles.labelwhite, ...customstyles.underline }}>Create Account</Text>
+                            </TouchableOpacity>
+                        </Text>
+                    </View>
+
+                </View>
+            </LinearGradient>
+        );
+    }
+}
+
+const styles = StyleSheet.create({
+    screenContainer: {
+        flex: 1,
+        justifyContent: "center",
+    },
+    linearGradient: {
+        flex: 1,
+        height: "100%",
+        justifyContent: "center",
+        padding: 30,
+    },
+    container: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ecf0f1',
+    },
+    input: {
+        width: 200,
+        height: 44,
+        padding: 10,
+        borderWidth: 1,
+        borderColor: 'black',
+        marginBottom: 10,
+    },
+    appButtonContainer: {
+        elevation: 8,
+        backgroundColor: "#fff",
+        borderRadius: 30,
+        paddingVertical: 15,
+        // paddingHorizontal: 12,
+        marginTop: 10,
+        marginBottom: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: -2, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 7,
+    },
+    button: {
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-evenly",
+        alignItems: "center",
+        padding: 10,
+        marginBottom: 20,
+        borderRadius: 30,
+        marginTop: 20,
+    },
+    buttonText: {
+        color: "#663792",
+        fontWeight: "bold",
+        fontSize: 20
+    },
+});
+
+export default LoginScreen;

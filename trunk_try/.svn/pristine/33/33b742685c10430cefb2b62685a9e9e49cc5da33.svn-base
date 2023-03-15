@@ -1,0 +1,387 @@
+//const url = "http://dev.identity-wallet.com/api/";
+import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+const url = "https://devidentitywallet.nityo.in/api/v1/";
+let token = '';
+const getAuthState = async () => {
+  const value = AsyncStorage.getItem('userInfo')
+    .then((value) => {
+      let userData = JSON.parse(value);
+      return userData;
+      //token = userData.remember_token;
+      //console.log(userData.remember_token);
+    });
+}
+
+const setAuthState = async () => {
+  const value = AsyncStorage.getItem('userInfo')
+    .then((value) => {
+      let userData = JSON.parse(value);
+      token = userData.remember_token;
+      //console.log(userData.remember_token);
+    });
+}
+
+// Reg,Forgot,Login:
+async function LoginAPI(data) {
+  try {
+    const response = await fetch(url + data.api_url, {
+      method: 'POST',
+      //mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'HEAD, GET, POST, PUT, DELETE',
+      },
+      body: JSON.stringify(data),
+      redirect: "manual"
+    })
+    return response.json();
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+// Common Post API
+async function commonPost(data) {
+  try {
+    const response = await fetch(url + data.api_url, {
+      method: 'POST',
+      //mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'HEAD, GET, POST, PUT, DELETE',
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(data),
+      redirect: "manual"
+    })
+    return response.json();
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+// Common GET API
+async function commonGet(data) {
+  try {
+    getAuthState();
+    setAuthState();
+    const response = await fetch(url + data.api_url, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+// Get user detail by id
+let userDetailById = async (user_id) => {
+  try {
+    const response = await fetch(url + `userDetailById?id=${user_id}`, {
+      method: 'GET',
+      //mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+// Get All Categories ::
+let getCategories = async (user_id) => {
+  try {
+    const response = await fetch(url + `getActiveCategories?id=${user_id}`, {
+      method: 'GET',
+      //mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+// Show User Prefrence
+let getUserPrefrence = async (user_id) => {
+  try {
+    const response = await fetch(url + `get-user-preference?user_id=${user_id}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+// Show Selected Category 
+let getSelectedPref = async (user_id) => {
+  try {
+    const response = await fetch(url + `getSelectedPref?user_id=${user_id}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+
+// Question Bank Listing
+let getQuestionListing = async () => {
+  try {
+    const response = await fetch(url + 'getQuestionListing', {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+let getRandomQuestion = async (user_id) => {
+  try {
+    const response = await fetch(url + `getRandomQuestion?user_id=${user_id}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+// Company Filter Listing
+let companyFilter = async (currentCompany) => {
+  try {
+    const response = await fetch(url + `userOffer?company_id=${currentCompany}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+// Price Range Filter 
+let priceFilter = async (data) => {
+  try {
+    const response = await fetch(url + `userOffer?min_price=${data.min_price}&max_price=${data.max_price}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+// Offer Detail 
+let offerDetails = async (offer_id) => {
+  try {
+    const response = await fetch(url + `offerDetails?id=${offer_id}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+// Retrive User Wallet  
+let retriveWallet = async (user_id) => {
+  try {
+    const response = await fetch(url + `getuserwallet?id=${user_id}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+// Card Details
+let ViewCards = async (user_id) => {
+  try {
+    const response = await fetch(url + `getUserWalletCard?id=${user_id}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+// Activate Card
+let activateCard = async (data) => {
+  try {
+    const response = await fetch(url + 'activatedCard', {
+      method: 'POST',
+      mode: 'cors',
+      cache: 'no-cache',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+// get Card Details By Id
+let getCardById = async (data) => {
+  try {
+    const response = await fetch(url + `getCardDetail?id=${data.id}&cardno=${data.cardno}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+// get Card Details By Id
+let getUserAddress = async (data) => {
+  try {
+    const response = await fetch(url + `getUserAddress?id=${data.id}&type=${data.type}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+
+// Get Enumerations::
+let getEnumerations = async (data) => {
+  try {
+    const response = await fetch(url + `getEnumerationsData?type=${data.type}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${token}`
+      },
+      redirect: "manual"
+    })
+    return response.json()
+  }
+  catch (e) {
+    console.log(e);
+  }
+}
+// Close
+export { LoginAPI, userDetailById, getCategories, getUserPrefrence, getSelectedPref, getQuestionListing, getRandomQuestion, offerDetails, companyFilter, priceFilter, retriveWallet, ViewCards, activateCard, getCardById, getUserAddress, getEnumerations, commonPost, commonGet };

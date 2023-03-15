@@ -1,0 +1,354 @@
+import React from 'react';
+import { StyleSheet, View, Button, TouchableOpacity, Text, Image, ImageBackground, ScrollView, Modal} from 'react-native';
+import { customstyles } from '../customstyle';
+import Icon from 'react-native-ionicons'
+import TranItem from "./TranItem";
+import { AntDesign } from '@expo/vector-icons'; 
+import { retriveWallet, commonPost } from './functions';
+import Dialog from "react-native-dialog";
+
+function NewWallet({ route, navigation }){
+
+    const [userId, setuserId] = React.useState('');
+    const [succResp, setSuccResp] = React.useState('');
+    const [errResp, setErrResp] = React.useState('');
+    const [visible, setVisible] = React.useState(false);
+    const [virtualDetail, setVirtual] = React.useState([]);
+    const currImage = require("../assets/Images/new_background.jpg");
+    const [wallVisible, setWallVisible] = React.useState(false);
+
+    const [loader, setLoader] = React.useState(false);
+    const [wallet, setWallet] = React.useState('');
+    const [holder, setHolder] = React.useState([]);
+    const [issueDate, setDates] = React.useState([]);
+    const [walletStatus, setWalletStatus] = React.useState('');
+
+    React.useEffect(() => {
+        let userId = route.params.user_id;
+        setuserId(userId);
+        console.log(userId + 'Wallet');
+    }, []);
+   
+    let retrieveUserWallet = (user_id) => {
+        var resp = retriveWallet(user_id)
+            .then(resp => {
+                console.log("resp", resp);
+                setLoader(true);
+                setWallet(resp.number);
+                setHolder(resp.holder.name);
+                setDates(resp.date);
+                setWalletStatus(resp.status.text);
+                setWallVisible(true);
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+    let showCard = () => {
+        navigation.navigate('ViewCard', { user_id: userId });
+    }
+
+    // Create Wallet 
+    let createCards = () => {
+
+        Alert.alert(
+            'Create Card',
+            'Are you sure you want to create a new Card?',
+            [
+                {
+                    text: 'Cancel',
+                    onPress: () => console.log('Cancel Pressed'),
+                    style: 'cancel',
+                },
+                { text: 'OK', onPress: () => confirmCreate() },
+            ]
+        );
+
+        let confirmCreate = () => {
+            let data = {
+                id: userId,
+                api_url: 'createCard'
+            }
+
+            var resp = commonPost(data)
+                .then(resp => {
+                    let result = resp;
+                    console.log(result);
+                    let status = result.code;
+                    if ((status == 400)) {
+                        setErrResp(result.description);
+                        setTimeout(() => {
+                            setErrResp('');
+                        }, 4000);
+                    } else {
+                        setSuccResp(result.description);
+                        setTimeout(() => {
+                            setSuccResp('');
+                        }, 4000);
+                    }
+                })
+                .catch((error) => {
+                    console.log(error)
+                })
+        }
+
+    }
+    // Close
+
+    let createVirtualCard = () => {
+        let data = {
+            id: userId,
+            type: 'create',
+            api_url: 'virtualAccount'
+        }
+        var response = commonPost(data)
+            .then(res => {
+                console.log(res);
+                let code = res.code;
+                let message = res.description;
+                if ((code == 400)) {
+                    setErrResp(message);
+                    setTimeout(() => {
+                        setErrResp('');
+                    }, 4000);
+                } 
+                else {
+                    setSuccResp('Virtual Account Created Successfully');
+                    setTimeout(() => {
+                        setSuccResp('');
+                    }, 4000);
+                    navigation.navigate("Account", {user_id: userId, virtualInfo: virtualDetail})
+                }
+                //console.log(visible);
+
+            })
+            .catch(error => console.log(error));
+        
+    }
+    const clickAccount = () => {
+        //Check if they already have a virtual account or not
+
+        let data = {
+            id: userId,
+            type: 'getaccount',
+            api_url: 'virtualAccount'
+        }
+        var response = commonPost(data)
+            .then(res => {
+                setVirtual(res.data[0].fast_accounts);
+                newFunction(res.data[0].fast_accounts);
+            })
+            .catch(error => console.log(error));
+        
+        //console.log(virtualDetail);
+
+    }
+
+    const newFunction = (stringVirtual) =>{
+        if(stringVirtual.length > 0){
+            navigation.navigate("Account", {user_id: userId, virtualInfo: virtualDetail})
+        }
+        else{
+            console.log("Doing")
+            createVirtualCard();
+        }
+    }
+
+    const handleCancel = () => {
+        setVisible(false);
+    }; 
+
+    const [tempBalance, setTempBalance] = React.useState(0);
+    const [username, setUsername] = React.useState("Nitya");
+    const [lookTran, setLookTran] = React.useState(false);
+    var newList = ["Hello", "Hi"]
+    var listTransactions = [
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        }
+    ];
+
+   //console.log(listTransactions[0].brand_name);
+
+    var coinsIcon = require("../assets/Images/coins.png");
+    var cards = require("../assets/Images/cards_credit.png");
+    var vaccount = require("../assets/Images/network_account.png");
+    var mtransfer = require("../assets/Images/transfer.png")
+
+    let lookAllTran = () =>{
+        navigation.navigate("Transactions");
+    }
+    return (
+        <View style={{flex: 10, marginLeft: 20, marginTop: 50}}>
+
+            <Text style={{...customstyles.titleText, fontSize: 35, color: "#663297", fontWeight: 'bold', flex: 1}}>Your Wallet</Text>
+            <View style={{...customstyles.walletBalanceBackground, flex: 1}}>
+                <Text style={{...customstyles.walletBalanceText, fontSize:15, color: "white", marginLeft: 15}}>Balance: </Text>
+                <Text style={customstyles.titleText, {color: "white", marginLeft: 15,marginRight: 30, fontSize: 24}}>$ {tempBalance}</Text>
+            </View>  
+            {/*
+            Actions Section --> Three options :| configuration
+            */}
+            <View style={{flex: 1, justifyContent: "center"}}>
+                <Text style={{...customstyles.titleText, fontWeight: 'bold'}}>Actions</Text>
+            </View>
+            <View flexDirection="row" style={{justifyContent: "center", padding: 2, flex: 3}}>
+                <View style={{ width: "45%", marginRight: 10, borderRadius: 16, padding:1}}>
+                    <TouchableOpacity onPress={retrieveUserWallet()} style={{ justifyContent: "space-between", flex: 1, flexDirection:"row", backgroundColor:"white", borderRadius:16, marginBottom: 5, borderColor: "black", borderWidth: 10}}>
+                        <Text style={{...customstyles.titleText, flex: 0.5, fontSize: 15, padding: 5, justifyContent: "flex-end", alignSelf: "flex-end"}}>View Wallet</Text>
+                        <Image source={coinsIcon} style={{flex: 0.5, width: 60, height: 60, justifyContent: "flex-end"}}>
+                        </Image>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={{ justifyContent: "space-between", flex: 1, flexDirection:"row", backgroundColor:"white", borderRadius:16, marginBottom: 5, borderColor: "black", borderWidth: 10}} onPress={clickAccount}>
+                        <Text style={{...customstyles.titleText, flex: 0.5, fontSize: 15, padding: 5, alignSelf: "flex-end"}}>
+                            Account
+                        </Text>
+                        <Image source={vaccount} style={{flex: 0.5, width: 60, height: 60, justifyContent: "flex-end"}}>
+                        </Image>
+                    </TouchableOpacity>
+                </View> 
+                <View style={{ width: "45%", marginRight: 20, borderRadius: 16, padding:1, flex: 3}}>
+                    <TouchableOpacity style={{ justifyContent: "space-between", flex: 1, flexDirection:"row", backgroundColor:"white", borderRadius:16, marginBottom: 5, borderColor: "black", borderWidth: 10}}>
+                        <Text style={{...customstyles.titleText, flex: 0.5, fontSize: 15, padding: 5, justifyContent: "flex-end", alignSelf: "flex-end"}}>Cards</Text>
+                        <Image source={cards} style={{flex: 0.5, width: 60, height: 60, justifyContent: "flex-end"}}>
+                        </Image>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={{ justifyContent: "space-between", flex: 1, flexDirection:"row", backgroundColor:"white", borderRadius:16, marginBottom: 5, borderColor: "black", borderWidth: 10}}>
+                        <Text style={{...customstyles.titleText, flex: 0.5, fontSize: 15, padding: 5, alignSelf: "flex-end"}}>
+                            Send
+                        </Text>
+                        <Image source={mtransfer} style={{flex: 0.5, width: 60, height: 60, justifyContent: "flex-end"}}>
+                        </Image>
+                    </TouchableOpacity>
+                </View>
+            </View>
+            {/*
+            Transactions listing section -- faded towards the least recent
+            */}
+            <View style={{flex: 1, alignItems: "center", justifyContent: "space-between", flexDirection: "row", marginRight: 20}}>
+                <Text style={{...customstyles.titleText, fontWeight: 'bold'}}>Recent Transactions</Text>
+                <TouchableOpacity onPress={lookAllTran}>
+                    <AntDesign name="rightcircle" size={30} color="#663297" style={{justifyContent: "center"}} />
+                </TouchableOpacity>
+            </View>
+            <View style={{flex: 3, alignItems: "center", marginLeft: -20}}>
+                {/**List of transactions from for loop mapping*/}
+                <ScrollView style={{padding: 5}}>
+                    {
+                        listTransactions.map((object, i) => (
+                            <TouchableOpacity style={styles.tranBackground}>
+                                <Image source={mtransfer} style={styles.imageStyle}></Image>
+                                <View style={styles.textView}>
+                                    { object.amount>0 ?
+                                        <Text style={styles.titleText}>+${object.amount}</Text>
+                                    :
+                                        <Text style={styles.titleText}>-${object.amount}</Text>
+                                    } 
+                                    <Text style={styles.dateTimeText}>{object.title}</Text>
+                                    <Text style={styles.dateTimeText}>{object.time}</Text>
+                                </View>
+                                <Text style={styles.brandNameText}>{object.brand_name}</Text>
+                            </TouchableOpacity>
+                        ))                        
+                    }
+                </ScrollView>
+            </View>
+            <View style={{flex: 0.1}}>
+
+            </View>
+        </View>
+    );
+}
+
+
+const styles = StyleSheet.create({
+    tranBackground: {
+        width: "95%",
+        backgroundColor: "white",
+        borderColor: "black",
+        borderWidth: 10,
+        flexDirection: "row",
+        alignSelf: "center",
+        borderRadius:16,
+        marginBottom: 10
+    },
+    imageStyle: {
+        width: 50,
+        height: 50,
+        alignSelf: "center",
+        padding: 5
+    },
+    textView:{
+        flexDirection: "column"
+    },
+    titleText:{
+        fontFamily: "Avenir-Next",
+        fontSize: 20,
+        color: "#663297",
+    },
+    dateTimeText: {
+        fontFamily: "Avenir-Next",
+        fontSize: 10,
+        color: "#663297",
+    },
+    brandNameText:{
+        alignSelf: "center",
+        fontSize: 10,
+        opacity: 0.5,
+        fontFamily: "Avenir-Next",
+        padding:2.5,
+        borderColor: "black",
+        borderWidth: 2,
+        marginLeft: "auto",
+        marginRight: 15
+    }
+});
+
+
+export default NewWallet;

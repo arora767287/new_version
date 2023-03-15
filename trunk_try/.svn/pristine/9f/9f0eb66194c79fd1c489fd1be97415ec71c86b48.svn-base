@@ -1,0 +1,129 @@
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, ScrollView, StatusBar, ActivityIndicator } from 'react-native';
+import { customstyles } from "../customstyle";
+import Loader from './Loader';
+import { Ionicons } from '@expo/vector-icons';
+import { retriveWallet } from './functions';
+import Background from './Background';
+import MyTabs from './MyTabs';
+
+function RetriveWallet({ navigation, route }) {
+
+    const [userId, setuserId] = useState('');
+    const [loader, setLoader] = useState(false);
+    const [wallet, setWallet] = useState('');
+    const [holder, setHolder] = useState([]);
+    const [issueDate, setDates] = useState([]);
+    const [walletStatus, setWalletStatus] = useState('');
+
+    useEffect(() => {
+        setuserId(route.params.user_id);
+        retriveUserWallet(route.params.user_id);
+    }, []);
+
+
+    let retriveUserWallet = (user_id) => {
+        var resp = retriveWallet(user_id)
+            .then(resp => {
+                console.log("resp", resp);
+                setLoader(true);
+                setWallet(resp.number);
+                setHolder(resp.holder.name);
+                setDates(resp.date);
+                setWalletStatus(resp.status.text);
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+
+    if (!loader) {
+        return <Loader />;
+    }
+
+    return (
+        <SafeAreaView style={styles.scrollArea}>
+            <View style={{ ...customstyles.header, ...customstyles.px15 }}>
+                <View>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={[customstyles.btnThemecircle, { width: 28, height: 28 }]}>
+                        <Ionicons name="md-chevron-back-outline" size={16} color="white" />
+                    </TouchableOpacity>
+                </View>
+
+                <Text style={{ ...customstyles.headerHeading, ...customstyles.flexgrow1, }}>My Wallet Details</Text>
+
+            </View>
+            <ScrollView style={styles.innerView}>
+                <View style={styles.container}>
+                    <View style={{ ...customstyles.whitebox, ...customstyles.shadowBlock, ...customstyles.mb10, ...customstyles.mt15 }}>
+                        <View style={{ ...customstyles.row, ...customstyles.mb5, ...customstyles.bglight, ...customstyles.p5 }}>
+                            <View style={customstyles.col6}>
+                                <Text style={{ ...customstyles.h6, }}>Wallet Name:</Text>
+                            </View>
+                            <View style={customstyles.col6}>
+                                <Text style={{ ...customstyles.textsm, ...customstyles.textpurple }}> {holder}</Text>
+                            </View>
+                        </View>
+                        <View style={{ ...customstyles.row, ...customstyles.mb5, ...customstyles.bglight, ...customstyles.p5 }}>
+                            <View style={customstyles.col6}>
+                                <Text style={{ ...customstyles.h6, }}>Wallet No :</Text>
+                            </View>
+                            <View style={customstyles.col6}>
+                                <Text style={{ ...customstyles.textsm, ...customstyles.textpurple }}> {wallet}</Text>
+                            </View>
+                        </View>
+                        <View style={{ ...customstyles.row, ...customstyles.mb5, ...customstyles.bglight, ...customstyles.p5 }}>
+                            <View style={customstyles.col6}>
+                                <Text style={{ ...customstyles.h6, }}>Wallet Expirt Date:</Text>
+                            </View>
+                            <View style={customstyles.col6}>
+                                <Text style={{ ...customstyles.textsm, ...customstyles.textpurple }}> {issueDate.expiry}</Text>
+                            </View>
+                        </View>
+                        <View style={{ ...customstyles.row, ...customstyles.mb5, ...customstyles.bglight, ...customstyles.p5 }}>
+                            <View style={customstyles.col6}>
+                                <Text style={{ ...customstyles.h6, }}>Wallet Issue Date:</Text>
+                            </View>
+                            <View style={customstyles.col6}>
+                                <Text style={{ ...customstyles.textsm, ...customstyles.textpurple }}> {issueDate.issued}</Text>
+                            </View>
+                        </View>
+                        <View style={{ ...customstyles.row, ...customstyles.mb5, ...customstyles.bglight, ...customstyles.p5 }}>
+                            <View style={customstyles.col6}>
+                                <Text style={{ ...customstyles.h6, }}>Wallet Status:</Text>
+                            </View>
+                            <View style={customstyles.col6}>
+                                <Text style={{ ...customstyles.textsm, ...customstyles.textpurple }}> {walletStatus}</Text>
+                            </View>
+                        </View>
+
+                    </View>
+
+                </View>
+            </ScrollView>
+            <MyTabs />
+        </SafeAreaView>
+    )
+}
+
+const styles = StyleSheet.create({
+    scrollArea: {
+        flex: 1,
+        width: "100%",
+        backgroundColor: "white"
+        // paddingTop: StatusBar.currentHeight,
+    },
+    innerView: {
+        height: "100%",
+        // paddingHorizontal: 20,
+    },
+    container: {
+        // flex: 1,
+        width: "100%",
+        paddingHorizontal: 20,
+        marginLeft: "auto",
+        marginRight: "auto",
+    },
+})
+
+export default RetriveWallet;

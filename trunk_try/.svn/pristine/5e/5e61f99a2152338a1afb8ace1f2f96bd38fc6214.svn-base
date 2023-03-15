@@ -1,0 +1,133 @@
+import React, { Component } from 'react';
+import { Alert, Button, TextInput, View, StyleSheet, Text, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Carousel from 'react-native-snap-carousel';
+import { getGeneralOffer } from './functions';
+const slide1 = require('../assets/Images/McDonalds-coupons.jpg');
+class Dashboard extends Component {
+    state = {
+        userData: '',
+        activeIndex: 0,
+        carouselItems: [],
+    }
+    componentDidMount() {
+        const value = AsyncStorage.getItem('userInfo')
+            .then((value) => {
+                //console.log(JSON.parse(value));
+                this.setState({
+                    userData: JSON.parse(value),
+                });
+            });
+        this.getGeneralOffer();
+    }
+
+    onPressEditProfile = () => {
+        this.props.navigation.navigate('EditProfile', {
+            userDetails: this.state.userData,
+        })
+    }
+
+    onPressCategory = () => {
+        this.props.navigation.navigate('Category', {
+            userDetails: this.state.userData,
+        })
+    }
+
+    userLogout = () => {
+        AsyncStorage.removeItem('userInfo');
+        this.props.navigation.navigate('LoginScreen');
+    }
+
+    // Get General offer
+
+    getGeneralOffer = () => {
+        var resp = getGeneralOffer()
+            .then(resp => {
+                let result = resp.data;
+                //console.log(result);
+                this.setState({
+                    carouselItems: result,
+                })
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+    // Close
+
+    _renderItem({ item, index }) {    // coursel
+        return (
+            <View style={{
+                backgroundColor: 'floralwhite',
+                borderRadius: 5,
+                height: 250,
+                padding: 50,
+                marginLeft: 25,
+                marginRight: 25,
+            }}>
+                <Image source={slide1} style={{ height: 200, width: '100%' }} />
+                <Text style={{ fontSize: 20 }}>{item.comp_name}</Text>
+                <Text style={{ fontSize: 15 }}>{item.offer_title}</Text>
+                <Text>$ {item.data_share_price + item.open_to_contact_price}</Text>
+            </View>
+
+        )
+    }
+
+
+    render() {
+        return (
+            <SafeAreaView style={styles.container}>
+
+                <Text>Welcome </Text>
+                <Text>{this.state.userData.fname != '' ? this.state.userData.fname : ''}</Text>
+                <Text>{this.state.userData.lname != '' ? this.state.userData.lname : ''}</Text>
+                <View>
+                    <Text>Here are your updates!</Text>
+                </View>
+
+                <View style={{ marginBottom: 20 }}>
+                    <TouchableOpacity
+                        onPress={this.onPressEditProfile}>
+                        <Text>Edit Profile</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={this.onPressCategory}>
+                        <Text>Categories</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={this.userLogout}>
+                        <Text>Logout</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* coursel */}
+                <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', }}>
+                    <Carousel
+                        layout={"default"}
+                        ref={ref => this.carousel = ref}
+                        data={this.state.carouselItems}
+                        sliderWidth={300}
+                        itemWidth={300}
+                        renderItem={this._renderItem}
+                        onSnapToItem={index => this.setState({ activeIndex: index })} />
+                </View>
+                {/* Close */}
+
+            </SafeAreaView >
+        );
+    }
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ecf0f1',
+    }
+});
+
+export default Dashboard;

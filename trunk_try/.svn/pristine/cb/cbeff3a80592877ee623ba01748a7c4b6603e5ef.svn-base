@@ -1,0 +1,142 @@
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+import HomeScreen from './components/HomeScreen';
+import LoginScreen from './components/LoginScreen';
+import Forgot from './components/Forgot';
+import Signup from './components/Signup';
+import ProfileScreen from './components/ProfileScreen';
+import EditProfile from './components/EditProfile';
+import Category from './components/Category';
+import MyTabs from './components/MyTabs';
+import Offer from './components/Offer';
+import Wallet from './components/Wallet';
+import Question from './components/Question';
+import Dashboard from './components/Dashboard';
+import ShowDocs from './components/ShowDocs';
+import Info from './components/Info';
+import RetriveWallet from './components/RetriveWallet';
+import ViewCard from './components/ViewCard';
+import Address from './components/Address';
+import Notification from './components/Notification';
+export default function App() {
+  const Stack = createNativeStackNavigator();
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen
+          initialRouteName="HomeScreen"
+          name='HomeScreen'
+          component={HomeScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="LoginScreen"
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Forgot"
+          component={Forgot}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Signup"
+          component={Signup}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="ProfileScreen"
+          component={ProfileScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="EditProfile"
+          component={EditProfile}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Category"
+          component={Category}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          options={{ headerShown: false }}
+          name="MyTabs" component={MyTabs} />
+
+        <Stack.Screen
+          name="Question"
+          component={Question}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Offer"
+          component={Offer}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Dashboard"
+          component={Dashboard}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="ShowDocs"
+          component={ShowDocs}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Info"
+          component={Info}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="RetriveWallet"
+          component={RetriveWallet}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="ViewCard"
+          component={ViewCard}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Address"
+          component={Address}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Notification"
+          component={Notification}
+          options={{ headerShown: false }}
+        />
+
+
+      </Stack.Navigator>
+    </NavigationContainer>
+
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

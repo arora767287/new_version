@@ -1,0 +1,763 @@
+import React, { Component } from 'react';
+import { Alert, Button, TextInput, View, StyleSheet, Text, Image, SectionList, FlatList, Dimensions, TouchableOpacity, SafeAreaView, ScrollView, StatusBar, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import Loader from './Loader';
+import { customstyles } from "../customstyle";
+import { Picker } from "@react-native-picker/picker";
+import Dialog from "react-native-dialog";
+import { offerDetails, submitOffer, companyFilter, priceFilter, commonGet, commonPost } from "../components/functions.js";
+import Checkbox from 'expo-checkbox';
+import { color } from 'react-native/Libraries/Components/View/ReactNativeStyleAttributes';
+import RangeSlider, { Slider } from 'react-native-range-slider-expo';
+
+
+const slide1 = require('../assets/Images/McDonalds-coupons.jpg');
+
+const ITEM_WIDTH = Dimensions.get('window').width - 40;
+const ITEM_HEIGHT = Math.round(ITEM_WIDTH * 3 / 4) - 50;
+
+class Offer extends Component {
+
+    state = {
+        userId: '',
+        setOpen: false,
+        DataisLoaded: false,
+        SECTIONS: [],
+        offerID: '',
+        companyList: [],
+        offerInfo: [],
+        offerPopUp: [],
+        userConcent: false,
+        selectedCheckboxes: [],
+        selectedOfferData: [],
+        success_resp: '',
+        fromValue: '',
+        toValue: '',
+        reset_btn: false,
+        apply_pref: false,
+    }
+
+    componentDidMount() {
+        let user_id = this.props.route.params.user_id;
+        this.setState({
+            userId: this.props.route.params.user_id
+        });
+        this.getOffer();
+        this.companyList();
+    }
+
+    // Open Popup detail
+    openDetail = (offer_id) => {
+        //console.log('Offer Id ' + offer_id);
+        this.handleOpen();
+        this.getOfferDetail(offer_id);
+        this.setState({
+            offerID: offer_id
+        });
+    }
+    handleOpen = () => {
+        this.setState({
+            setOpen: true,
+            offerID: '',
+        });
+    }
+    handleClose = () => {
+        this.setState({
+            setOpen: false,
+            checkBoxChecked: false,
+        })
+    }
+
+    getOfferDetail(offer_id) {
+        var resp = offerDetails(offer_id)
+            .then(resp => {
+                let result = resp.data;
+                //console.log(result);
+                this.setState({
+                    offerPopUp: result,
+                    offerInfo: result.offerInfo
+                });
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+    // Close
+
+    // Get Offer
+    getOffer = () => {
+        let data = {
+            api_url: 'userOffer'
+        }
+        var resp = commonGet(data)
+            .then(resp => {
+                let result = resp.data.data;
+                //console.log(result);
+                this.setState({
+                    SECTIONS: result,
+                    DataisLoaded: true,
+                })
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+    // Close
+
+    // Get Company List
+    companyList = () => {
+        let data = {
+            api_url: 'companylist'
+        }
+        var resp = commonGet(data)
+            .then(resp => {
+                let result = resp.data;
+                //console.log(result);
+                this.setState({
+                    companyList: result,
+                })
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+    // Close
+
+    // User Concent  
+    handleConcent = () => {
+        this.setState({ userConcent: !this.state.userConcent });
+        console.log(this.state.userConcent);
+    }
+    // Close
+    // Prefrence handle
+    handlePrefrence = id => {
+        const selectedCheckboxes = this.state.selectedCheckboxes;
+        const findIdx = selectedCheckboxes.indexOf(id);
+        if (findIdx > -1) {
+            selectedCheckboxes.splice(findIdx, 1);
+        } else {
+            selectedCheckboxes.push(id);
+        }
+        this.setState({
+            selectedCheckboxes: selectedCheckboxes
+        });
+    }
+    // Close
+
+    // Handle sharing options
+    onChangeOffer = id => {
+        console.log(id);
+        const selectedOfferData = this.state.selectedOfferData;
+        const findIdx = selectedOfferData.indexOf(id);
+        if (findIdx > -1) {
+            selectedOfferData.splice(findIdx, 1);
+        } else {
+            selectedOfferData.push(id);
+        }
+        this.setState({
+            selectedOfferData: selectedOfferData
+        });
+    }
+    // Close
+
+    // Company Filter
+    filterByCompany = e => {
+        let currentCompany = e;
+        console.log(currentCompany);
+        this.setState({
+            DataisLoaded: false,
+            companyFilter: currentCompany
+        });
+
+        var resp = companyFilter(currentCompany)
+            .then(resp => {
+                let result = resp.data.data;
+                console.log(result);
+                this.setState({
+                    SECTIONS: result,
+                    DataisLoaded: true,
+                    reset_btn: true,
+                })
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+    // Close
+
+    // Price Range Filters 
+    addFilter = () => {
+        let min_price = this.state.fromValue;
+        let max_price = this.state.toValue;
+
+        if ((max_price == '')) {
+            Alert.alert('Please select valid price range');
+        } else {
+            let data = {
+                min_price: min_price,
+                max_price: max_price,
+            }
+
+            this.setState({
+                apply_pref: true,
+                DataisLoaded: false,
+            });
+            var resp = priceFilter(data)
+                .then(resp => {
+                    let result = resp.data.data;
+                    console.log(result);
+                    this.setState({
+                        SECTIONS: result,
+                        DataisLoaded: true,
+                        reset_btn: true,
+                    })
+                })
+                .catch((error) => {
+                    console.log(error)
+                })
+        }
+
+
+    }
+    // close
+
+    // Reset Filter
+    resetFilter = () => {
+
+        Alert.alert(
+            'Reset Filter',
+            'Are you sure you want to reset the filters?',
+            [
+                {
+                    text: 'Cancel',
+                    onPress: () => console.log('Cancel Pressed'),
+                    style: 'cancel',
+                },
+                { text: 'OK', onPress: () => resetCnfrm() },
+            ]
+        );
+
+        let resetCnfrm = () => {
+            this.getOffer();
+            this.setState({
+                DataisLoaded: false,
+                reset_btn: false,
+                companyFilter: '',
+                apply_pref: false
+            });
+            setTimeout(() => {
+                this.setState({ DataisLoaded: true });
+            }, 1000)
+        }
+    }
+    // close
+
+    // Submit Offer
+    submitOffer = (e) => {
+
+        let selected_options = this.state.selectedCheckboxes;
+        let offer_id = this.state.offerID;
+        let data_share = selected_options[0] ? '1' : '';
+        let open_to_contact = selected_options[1] ? '1' : '';
+        let userId = this.props.route.params.user_id;
+        let offer_data = this.state.selectedOfferData ? this.state.selectedOfferData.toString() : '';
+
+        if ((selected_options == '')) {
+            this.setState({
+                form_err: 'Please select the type of offer you are providing your data for (data sharing, or open to contact)'
+            });
+            setTimeout(() => {
+                this.setState({
+                    form_err: ''
+                });
+            }, 5000);
+            return;
+        } else if ((!this.state.userConcent)) {
+            this.setState({
+                form_err: 'Please agree to the terms of this offer'
+            });
+            setTimeout(() => {
+                this.setState({
+                    form_err: ''
+                });
+            }, 5000);
+            return;
+        } else {
+            let data = {
+                user_id: userId,
+                offer_id: offer_id,
+                data_share: data_share,
+                open_to_contact: open_to_contact,
+                terms_conditions: '1',
+                offer_data: offer_data,
+                api_url: 'saveUserOffer'
+            }
+            var resp = commonPost(data)
+                .then(resp => {
+                    let result = resp;
+                    //console.log(result);
+                    let message = result.message;
+                    let status = result.status;
+                    if ((status == 1)) {
+                        this.setState({
+                            success_resp: message,
+                            checkBoxChecked: false,
+                            dataSharePrice: '',
+                            openToContact: '',
+                        })
+                    }
+                    setTimeout(() => {
+                        this.setState({
+                            success_resp: '',
+                            checkBoxChecked: false,
+                            userConcent: false,
+                            selectedCheckboxes: [],
+                            selectedOfferData: [],
+                        });
+                    }, 5000);
+
+                    setTimeout(() => {
+                        this.handleClose();
+                    }, 6000);
+                })
+                .catch((error) => {
+                    console.log(error)
+                })
+        }
+
+    }
+    // Close
+    render() {
+        const { DataisLoaded, items } = this.state;
+        if (!DataisLoaded) {
+            return <Loader />;
+        }
+        return (
+            <SafeAreaView style={styles.scrollArea}>
+                <View style={{ ...customstyles.header, ...customstyles.px15 }}>
+                    <Text style={{ ...customstyles.headerHeading, ...customstyles.flexgrow1, }}>Offers</Text>
+                </View>
+                <View style={styles.container}>
+                    <View style={{ ...customstyles.whitebox, ...customstyles.shadowBlock, ...customstyles.mb15, ...customstyles.p20, ...customstyles.mt30 }}>
+                        <Text style={{ ...customstyles.h5 }}>Price Range</Text>
+                        <View style={{ height: 100, padding: 0, marginTop: -20 }}>
+                            <RangeSlider min={2} max={1000}
+                                styleSize="medium"
+                                fromKnobColor="#663792"
+                                toKnobColor="#663792"
+                                inRangeBarColor="#5555"
+                                outOfRangeBarColor="#111"
+                                fromValueOnChange={value => this.setState({ fromValue: value })}
+                                toValueOnChange={value => this.setState({ toValue: value })}
+                                initialFromValue={11}
+                            />
+                        </View>
+
+
+                        <View>
+                            <View style={{ ...customstyles.checkboxinlineblock, ...customstyles.mt10 }}>
+                                <Checkbox
+                                    value={!!this.state.apply_pref}
+                                    onValueChange={() => this.addFilter()}
+                                    selected={this.state.apply_pref}
+                                    color={!!this.state.apply_pref ? 'transparent' : undefined}
+                                    style={{ ...customstyles.mr10, ...customstyles.checkboxhidden }}
+                                />
+                                <Text style={{ ...customstyles.checkboxareainline }}>
+                                    {
+                                        this.state.apply_pref ? <View style={customstyles.checkboxlistsquareselected} ><Ionicons name="checkbox-outline" size={28} color="#663792" /></View> : <View style={customstyles.checkboxlistsquare} ><Ionicons name="square-outline" size={28} color="#663792" /></View>
+                                    }
+                                </Text>
+                                <Text style={{ ...customstyles.checkboxlistTextinline }}>Apply my Prefrence</Text>
+                            </View>
+                        </View>
+                        <View style={{ ...customstyles.row, ...customstyles.mt10 }}>
+                            <View style={{ ...customstyles.col8 }}>
+                                <View style={{ ...customstyles.w100 }}>
+                                    <Text style={{ ...customstyles.h5 }}>Sort By Company</Text>
+                                </View>
+                                <View style={{ ...customstyles.dropdownBoxThemesm, ...customstyles.mt10 }}>
+                                    <Picker
+                                        selectedValue={this.state.id_type}
+                                        onValueChange={(value, index) => this.filterByCompany(value)}
+                                        mode="dropdown" style={customstyles.dropdownthemesm} dropdownIconColor='#663792'
+                                    >
+                                        <Picker.Item label='Select Company' value='empty' color='black' style={{ fontSize: 14 }} />
+                                        {
+                                            this.state.companyList ?
+                                                this.state.companyList.map((item, i) => (
+                                                    <Picker.Item key={i} label={item.comp_name} value={item.id} color="black" />
+                                                ))
+                                                : <Picker.Item label='No Company Yet' value='01' />
+                                        }
+                                    </Picker>
+                                </View>
+                            </View>
+                            <View style={{ ...customstyles.col4, ...customstyles.mt15 }}>
+                                {
+                                    this.state.reset_btn &&
+                                    <TouchableOpacity
+                                        onPress={this.resetFilter} style={customstyles.ml5}>
+                                        <Text style={{ ...customstyles.btnThemesmall, ...customstyles.mt20 }}>Reset</Text>
+                                    </TouchableOpacity>
+                                }
+                            </View>
+
+                        </View>
+
+
+                    </View>
+
+                    <Dialog.Container visible={this.state.setOpen}>
+                        <Dialog.Title style={{ ...customstyles.h1, ...customstyles.textCenter, ...customstyles.mb0, }}>Offer Information</Dialog.Title>
+                        {
+                            this.state.form_err != '' &&
+                            <Dialog.Description style={{ color: 'red' }}>{this.state.form_err}</Dialog.Description>
+                        }
+                        {
+                            this.state.success_resp != '' &&
+                            <Dialog.Description style={{ color: 'green' }}> {this.state.success_resp}</Dialog.Description>
+                        }
+
+                        <ScrollView>
+
+                            <Dialog.Description style={{ ...customstyles.bgborderlight, ...customstyles.px10, ...customstyles.py5 }}>
+                                <Text style={customstyles.h5}>Company Name :</Text> <Text>{this.state.offerPopUp.comp_name}</Text>
+                            </Dialog.Description>
+
+                            <Dialog.Description style={{ ...customstyles.bgborderlight, ...customstyles.px10, ...customstyles.py5 }}>
+                                <Text style={customstyles.h5}>Offer Title :</Text> <Text>{this.state.offerPopUp.offer_title}</Text>
+                            </Dialog.Description>
+
+                            <View style={{ ...customstyles.bgborderlight, ...customstyles.px10, ...customstyles.py5, ...customstyles.mt10 }}>
+                                <View style={customstyles.w100}>
+                                    <Text style={customstyles.h5}>Offer Description :</Text>
+                                </View>
+                                <View style={customstyles.w100}>
+                                    <Text>{this.state.offerPopUp.offer_description}</Text>
+                                </View>
+                            </View>
+
+
+                            <View style={{ ...customstyles.bgborderlight, ...customstyles.px10, ...customstyles.py5, ...customstyles.mt10 }}>
+                                <Text style={customstyles.h5}>Offer Prefrence</Text>
+                                <View style={{ ...customstyles.row }}>
+                                    <View style={{ ...customstyles.col7, }}>
+                                        <View style={{ ...customstyles.checkboxinlineblock }}>
+                                            <Checkbox
+                                                value={!!this.state.selectedCheckboxes.includes(1)}
+                                                onValueChange={() => this.handlePrefrence(1)}
+                                                selected={this.state.selectedCheckboxes.includes(1)}
+                                                color={!!this.state.selectedCheckboxes.includes(1) ? 'transparent' : undefined}
+                                                style={{ ...customstyles.mr10, ...customstyles.checkboxhidden }}
+                                            />
+                                            <Text style={{ ...customstyles.checkboxareainline }}>
+                                                {
+                                                    this.state.selectedCheckboxes.includes(1) ? <View style={customstyles.checkboxlistsquareselected} ><Ionicons name="checkbox-outline" size={28} color="#663792" /></View> : <View style={customstyles.checkboxlistsquare} ><Ionicons name="square-outline" size={28} color="#663792" /></View>
+                                                }
+                                            </Text>
+                                            <Text style={{ ...customstyles.checkboxlistText }}>Data Sharing</Text>
+
+                                        </View>
+
+                                    </View>
+
+                                    <View style={customstyles.col5}>
+                                        <Text style={{ ...customstyles.textRight, ...customstyles.h5 }}>$ {this.state.offerPopUp.data_share_price}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={{ ...customstyles.row }}>
+
+                                    <View style={{ ...customstyles.col7, }}>
+                                        <View style={{ ...customstyles.checkboxinlineblock }}>
+                                            <Checkbox
+                                                value={!!this.state.selectedCheckboxes.includes(2)}
+                                                onValueChange={() => this.handlePrefrence(2)}
+                                                selected={this.state.selectedCheckboxes.includes(2)}
+                                                color={!!this.state.selectedCheckboxes.includes(2) ? 'transparent' : undefined}
+                                                style={{ ...customstyles.mr10, ...customstyles.checkboxhidden }}
+                                            />
+                                            <Text style={{ ...customstyles.checkboxareainline }}>
+                                                {
+                                                    this.state.selectedCheckboxes.includes(2) ? <View style={customstyles.checkboxlistsquareselected} ><Ionicons name="checkbox-outline" size={28} color="#663792" /></View> : <View style={customstyles.checkboxlistsquare} ><Ionicons name="square-outline" size={28} color="#663792" /></View>
+                                                }
+                                            </Text>
+                                            <Text style={{ ...customstyles.checkboxlistText }}>Open to Contact</Text>
+
+                                        </View>
+
+                                    </View>
+
+                                    <View style={customstyles.col5}>
+                                        <Text style={{ ...customstyles.textRight, ...customstyles.h5 }}>$ {this.state.offerPopUp.open_to_contact_price}</Text>
+                                    </View>
+                                </View>
+
+                            </View>
+
+
+
+                            <View style={{ ...customstyles.bgborderlight, ...customstyles.px10, ...customstyles.py5, ...customstyles.mt10 }}>
+                                <Text style={{ ...customstyles.h5, ...customstyles.w100 }}>Want to Share</Text>
+
+                                {/* <View style={{ ...customstyles.row, }}>
+
+                                    <View style={{ ...customstyles.col7, }}>
+                                        <View style={{ ...customstyles.checkboxinlineblock }}> */}
+                                {
+                                    ((this.state.offerPopUp.offer_type == '1') || (this.state.offer_type == '3')) &&
+                                    this.state.offerInfo.map((data, j) => (
+                                        <View key={j} >
+                                            <View style={{ ...customstyles.row, }}>
+                                                <View style={{ ...customstyles.col7, }}>
+                                                    <View style={{ ...customstyles.checkboxinlineblock }}>
+                                                        <Checkbox
+                                                            value={!!this.state.selectedOfferData.includes(data.id)}
+                                                            onValueChange={() => this.onChangeOffer(data.id)}
+                                                            selected={this.state.selectedOfferData.includes(data.id)}
+                                                            color={!!this.state.selectedOfferData.includes(data.id) ? 'transparent' : undefined} style={{ ...customstyles.mr10, ...customstyles.checkboxhidden }} />
+
+                                                        <Text style={{ ...customstyles.checkboxareainline, }}>
+                                                            {
+                                                                this.state.selectedOfferData.includes(data.id) ? <View style={customstyles.checkboxlistsquareselected} ><Ionicons name="checkbox-outline" size={28} color="#663792" /></View> : <View style={customstyles.checkboxlistsquare} ><Ionicons name="square-outline" size={28} color="#663792" /></View>
+
+                                                            }
+
+                                                        </Text>
+
+                                                        <Text style={{ ...customstyles.checkboxlistText }}>{data.keycode}</Text>
+                                                    </View>
+                                                </View>
+                                                <View style={{ ...customstyles.col5, }}>
+                                                    <Text style={{ ...customstyles.textRight, ...customstyles.h6, ...customstyles.mb0 }}>$ {data.price}</Text>
+                                                </View>
+                                            </View>
+                                            {/* <Text>$ {data.price}</Text> */}
+                                        </View>
+                                    ))
+                                }
+
+                                {/* </View>
+                                    </View>                                    
+                                </View> */}
+                            </View>
+
+                        </ScrollView>
+                        {/* <Dialog.Description style={{ ...customstyles.bgborderlight, ...customstyles.px10, ...customstyles.py5, }}>
+                            
+
+                            <View style={{ ...customstyles.row }}>
+
+                                <View style={{ ...customstyles.col7, ...customstyles.bgdanger }}>
+                                    <View style={{ ...customstyles.checkboxinlineblock }}>
+                                        <Checkbox
+                                            value={!!this.state.selectedCheckboxes.includes(1)}
+                                            onValueChange={() => this.handlePrefrence(1)}
+                                            selected={this.state.selectedCheckboxes.includes(1)}
+                                            color={!!this.state.selectedCheckboxes.includes(1) ? 'transparent' : undefined}
+                                            style={{ ...customstyles.mr10, ...customstyles.checkboxhidden }}
+                                        />
+                                        <Text style={{ ...customstyles.checkboxareainline }}>
+                                            {
+                                                this.state.selectedCheckboxes.includes(1) ? <View style={customstyles.checkboxlistsquareselected} ><Ionicons name="checkbox-outline" size={28} color="#663792" /></View> : <View style={customstyles.checkboxlistsquare} ><Ionicons name="square-outline" size={28} color="#663792" /></View>
+                                            }
+                                        </Text>
+                                        <Text style={{ ...customstyles.checkboxlistText }}>Data Sharing</Text>
+
+                                    </View>
+
+                                </View>
+
+                                <View style={{ ...customstyles.col5, ...customstyles.bgpurple }}>
+                                    <Text>$ {this.state.offerPopUp.data_share_price}</Text>
+                                </View>
+                            </View>
+
+
+                            
+
+                            
+
+                            <Checkbox
+                                value={!!this.state.selectedCheckboxes.includes(2)}
+                                onValueChange={() => this.handlePrefrence(2)}
+                                selected={this.state.selectedCheckboxes.includes(2)}
+                                color={!!this.state.selectedCheckboxes.includes(2) ? 'green' : 'red'} />
+                            <Text>Open to Contact</Text>
+                            <Text>$ {this.state.offerPopUp.open_to_contact_price}</Text>
+                        </Dialog.Description> */}
+
+                        {/* <Dialog.Description>
+                            Want to Share
+                        </Dialog.Description> */}
+
+                        {/* {
+                            ((this.state.offerPopUp.offer_type == '1') || (this.state.offer_type == '3')) &&
+                            this.state.offerInfo.map((data, j) => (
+                                <Dialog.Description key={j}>
+                                    <Checkbox
+                                        value={!!this.state.selectedOfferData.includes(data.id)}
+                                        onValueChange={() => this.onChangeOffer(data.id)}
+                                        selected={this.state.selectedOfferData.includes(data.id)}
+                                        color={!!this.state.selectedOfferData.includes(data.id) ? 'green' : 'red'} />
+                                    {data.keycode}
+                                    $ {data.price}
+                                </Dialog.Description>
+                            ))
+                        } */}
+
+                        <View style={{ ...customstyles.alertPrimary, ...customstyles.mt10 }}>
+                            <Text style={customstyles.textbold}>Offer Terms : </Text>
+                            <Text style={customstyles.textxs}>{this.state.offerPopUp.offer_terms}</Text>
+                        </View>
+                        <View style={{ ...customstyles.checkboxinlineblock }}>
+                            <Checkbox
+                                value={!!this.state.userConcent}
+                                onValueChange={() => this.handleConcent()}
+                                selected={this.state.userConcent}
+                                color={!!this.state.userConcent ? 'transparent' : undefined}
+                                style={{ ...customstyles.mr10, ...customstyles.checkboxhidden }}
+                            />
+                            <Text style={{ ...customstyles.checkboxareainline }}>
+                                {
+                                    this.state.userConcent ? <View style={customstyles.checkboxlistsquareselected} ><Ionicons name="checkbox-outline" size={28} color="#663792" /></View> : <View style={customstyles.checkboxlistsquare} ><Ionicons name="square-outline" size={28} color="#663792" /></View>
+                                }
+                            </Text>
+                            <Text style={{ ...customstyles.checkboxlistText }}>I agree to terms of this offer</Text>
+
+                        </View>
+
+                        {/* <View>
+                            <Checkbox
+                                value={!!this.state.userConcent}
+                                onValueChange={() => this.handleConcent()}
+                                selected={this.state.userConcent}
+                                color={!!this.state.userConcent ? 'green' : 'red'}
+                            />
+                            <Text>I agree to terms of this offer</Text>
+                        </View> */}
+                        <Dialog.Button label="Cancel" onPress={() => this.handleClose()} style={customstyles.btnRedxs} />
+                        <Dialog.Button label="Submit" onPress={() => this.submitOffer()} style={{ ...customstyles.btnThemexs, ...customstyles.ml5 }} />
+                    </Dialog.Container>
+
+
+                    {
+                        this.state.SECTIONS.length > 0 ?
+                            <FlatList
+                                data={this.state.SECTIONS}
+                                renderItem={({ item }) => {
+                                    return (
+                                        <TouchableOpacity onPress={() => this.openDetail(item.id)} >
+                                            <View style={{
+                                                borderRadius: 5,
+                                                paddingLeft: 0,
+                                                marginLeft: 5,
+                                                marginBottom: 15,
+                                                marginRight: 5,
+                                                borderRadius: 10,
+                                                overflow: "hidden",
+                                                shadowColor: '#ddd',
+                                                shadowOffset: { width: -2, height: 3 },
+                                                shadowOpacity: 1.0,
+                                                shadowRadius: 7,
+                                                elevation: 8,
+                                            }}>
+                                                <Image source={slide1} style={styles.itemPhoto} />
+                                                <Text style={styles.offerTitleHeading}>{item.offer_title}</Text>
+                                                <Text style={styles.offerPrice}>${item.data_share_price + item.open_to_contact_price}</Text>
+                                                <Text style={styles.compName}>{item.comp_name}</Text>
+                                                <TouchableOpacity onPress={() => this.openDetail(item.id)} style={styles.viewoffer}><Text style={{ ...customstyles.textwhite, ...customstyles.h6 }}>View Offer</Text></TouchableOpacity>
+                                            </View>
+                                        </TouchableOpacity>
+                                    )
+                                }}
+                                keyExtractor={item => item.id}
+                            /> : <View><Text>No Offer Found</Text></View>
+                    }
+                </View>
+            </SafeAreaView >
+        );
+    }
+}
+
+
+const styles = StyleSheet.create({
+
+    scrollArea: {
+        flex: 1,
+        width: "100%",
+        backgroundColor: "white"
+        // paddingTop: StatusBar.currentHeight,
+    },
+    innerView: {
+        height: "100%",
+        paddingHorizontal: 20,
+    },
+    container: {
+        flex: 1,
+        //alignItems: 'center',
+        justifyContent: 'center',
+        // backgroundColor: '#ecf0f1',
+        marginBottom: 48,
+        paddingHorizontal: 15,
+        // paddingVertical: 50,
+        // borderColor: "red",
+        // borderWidth: 1,
+        // paddingBottom: 10,
+    },
+    itemPhoto: {
+        position: "relative",
+        width: ITEM_WIDTH,
+        height: ITEM_HEIGHT,
+        // aspectRatio: 16 / 9,
+    },
+    offerTitleHeading: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: 0,
+        paddingTop: 5,
+        paddingBottom: 5,
+        paddingLeft: 10,
+        paddingRight: 100,
+        color: "#fff",
+        textAlign: "left",
+        backgroundColor: "rgba(0, 0, 0, .5)",
+        fontSize: 24,
+    },
+    compName: {
+        position: "absolute",
+        left: 0,
+        bottom: 0,
+        textAlign: "left",
+        backgroundColor: "rgba(0, 0, 0, .5)",
+        borderTopRightRadius: 20,
+        color: "#fff",
+        margin: 0,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+    },
+    offerPrice: {
+        position: "absolute",
+        bottom: 0,
+        right: 0,
+        textAlign: "left",
+        backgroundColor: "rgba(0, 0, 0, .5)",
+        borderTopLeftRadius: 20,
+        color: "#fff",
+        margin: 0,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+    },
+    viewoffer: {
+        position: "absolute",
+        bottom: 0,
+        right: 10,
+        top: 9,
+        textAlign: "right",
+        color: "#fff",
+        fontSize: 20,
+    }
+});
+export default Offer;

@@ -1,0 +1,536 @@
+import React, { Component } from 'react';
+import { Alert, Button, TextInput, View, StyleSheet, Text, TouchableOpacity, SafeAreaView, ScrollView, StatusBar, Image, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import Loader from './Loader';
+import RadioButtonRN from 'radio-buttons-react-native-expo';
+import Checkbox from 'expo-checkbox';
+import { customstyles } from "../customstyle";
+import { commonPost, getRandomQuestion } from "../components/functions.js";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
+import Background from './Background';
+
+class Question extends Component {
+
+    state = {
+        user_submission_id: '',
+        DataisLoaded: false,
+        Questions: [],
+        Question_type: [],
+        clicked: false,
+        text_input: '',
+        radio_btn: '',
+        number_text: '',
+        api_resp: '',
+        image_base64: '',
+        selectedCheckboxes: [],
+        questionOptions: [],
+        image: '',
+    }
+
+    componentDidMount() {
+        let userId = this.props.route.params.user_id;
+        this.setState({ user_submission_id: userId });
+        this.getRandomQuestion(userId);
+    }
+
+    // Get Question Listing Api
+    getRandomQuestion = (userId) => {
+        let resp = getRandomQuestion(userId)
+            .then(resp => {
+                let result = resp.data;
+                let options = result[0].question_options;
+                console.log(result);
+                //console.log(options);
+                this.setState({
+                    Questions: result,
+                    questionOptions: options,
+                    DataisLoaded: true,
+                })
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+    // Close
+
+    // Start Quiz
+    startQuiz = () => {
+        this.setState({
+            clicked: true
+        })
+    }
+    // Close
+
+    // qus Skip Button
+    qusSkip = (qus_id) => {
+        let ques_id = qus_id;
+        let userId = this.state.user_submission_id;
+        let is_interested = '0';
+
+        let data = {
+            user_id: userId,
+            question_id: ques_id,
+            is_interested: is_interested,
+            api_url: 'getUserAnswer'
+        }
+
+        this.setState({
+            DataisLoaded: false,
+        })
+
+        var resp = commonPost(data)
+            .then(resp => {
+                let result = resp;
+                let status = result.status;
+                let message = result.message;
+                if ((status === 1)) {
+                    this.setState({
+                        DataisLoaded: true,
+                        number_text: '',
+                        text_input: '',
+                        radio_btn: '',
+                        selectedCheckboxes: [],
+                        image_base64: '',
+                    })
+                    this.getRandomQuestion(userId);
+                } else {
+                    // Something Went Wrong
+                }
+
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+    // Close
+
+    // Checkbox Handle
+    onChange = id => {
+        this.setState({
+            is_val_checked: !this.state.is_val_checked,
+        });
+        const selectedCheckboxes = this.state.selectedCheckboxes;
+        const findIdx = selectedCheckboxes.indexOf(id);
+        if (findIdx > -1) {
+            selectedCheckboxes.splice(findIdx, 1);
+        } else {
+            selectedCheckboxes.push(id);
+        }
+        this.setState({
+            selectedCheckboxes: selectedCheckboxes
+        });
+    }
+    // Close
+
+    // Submit Answers 
+    submitAnswer = (qus_id) => {
+        let ques_id = qus_id;
+        let userId = this.state.user_submission_id;
+        let is_interested = '1';
+
+        let base_64 = this.state.image_base64;
+        let final_ans = '';
+
+        if ((base_64)) {
+            //console.log('Image');
+            final_ans = base_64;
+        } else {
+            if (this.state.text_input) {
+                //console.log('Input');
+                final_ans = this.state.text_input;
+            } else if (this.state.number_text) {
+                //console.log('Number');
+                final_ans = this.state.number_text;
+            } else if (this.state.radio_btn) {
+                //console.log('Radio');
+                final_ans = this.state.radio_btn;
+            } else {
+                //console.log('Checbox');
+                final_ans = this.state.selectedCheckboxes.toString();
+            }
+        }
+
+        //console.log(final_ans);
+
+        if ((base_64)) {
+            this.getDocument(ques_id, userId, is_interested, final_ans);
+        } else {
+            this.getUserAnswer(ques_id, userId, is_interested, final_ans);
+        }
+    }
+    //   Close
+
+    // Image Picker
+    pickImage = async () => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permissionResult.granted === false) {
+            alert("Permission to access camera roll is required!");
+            return;
+        } else {
+            let result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.All,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 1,
+                base64: true,
+            });
+            let imageUri = result ? `data:image/jpg;base64,${result.base64}` : null;
+            this.setState({
+                image_base64: imageUri
+            });
+        }
+
+    };
+    // Close
+
+    // Submitting Asn
+    getUserAnswer = (ques_id, userId, is_interested, final_ans) => {
+
+        let data = {
+            user_id: userId,
+            question_id: ques_id,
+            is_interested: is_interested,
+            answer: final_ans,
+            api_url: 'getUserAnswer'
+        }
+        console.log(data);
+        this.setState({
+            DataisLoaded: false,
+        });
+
+        var resp = commonPost(data)
+            .then(resp => {
+                let result = resp.data;
+                let message = result.message;
+                let status = result.status;
+                console.log(result);
+
+                if ((status != 1)) {
+                    this.setState({
+                        api_resp: message
+                    });
+                } else {
+                    this.setState({
+                        api_resp: '',
+                    });
+                }
+
+
+                setTimeout(() => {
+                    this.setState({
+                        api_resp: '',
+                        text_input: '',
+                        number_text: '',
+                        selectedCheckboxes: [],
+                        radio_btn: '',
+                    });
+                }, 3000);
+
+                setTimeout(() => {
+                    this.getRandomQuestion(userId);
+                    this.setState({
+                        DataisLoaded: true,
+                    });
+                }, 5000);
+
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+
+    }
+
+    getDocument = (ques_id, userId, is_interested, final_ans) => {
+        let data = {
+            user_id: userId,
+            question_id: ques_id,
+            is_interested: is_interested,
+            document: final_ans,
+            api_url: 'getUserAnswer'
+        }
+        //console.log(data);
+
+        var resp = commonPost(data)
+            .then(resp => {
+                let result = resp;
+                console.log(result);
+                let status = result.status;
+                let message = result.message;
+
+                if ((status != 1)) {
+                    this.setState({
+                        api_resp: message
+                    });
+                } else {
+                    this.setState({
+                        api_resp: ''
+                    });
+                }
+
+                setTimeout(() => {
+                    this.setState({
+                        api_resp: '',
+                        text_input: '',
+                        number_text: '',
+                        radio_btn: '',
+                        selectedCheckboxes: [],
+                        image_base64: '',
+                    });
+                }, 3000);
+
+                setTimeout(() => {
+                    this.getRandomQuestion(userId);
+                    this.setState({
+                        DataisLoaded: true,
+                    });
+                }, 5000);
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+
+    }
+    // Close
+
+    render() {
+
+        const { DataisLoaded, items } = this.state;
+        if (!DataisLoaded) {
+            return <Loader />;
+        }
+
+        if (!this.state.clicked) {
+
+            return (
+                <SafeAreaView style={styles.scrollArea}>
+                    {/* <Background /> */}
+                    <View style={{ ...customstyles.header, ...customstyles.px15 }}>
+                        <Text style={{ ...customstyles.headerHeading, ...customstyles.flexgrow1, }}>QUESTION STORE</Text>
+                    </View>
+                    <ScrollView style={styles.innerView}>
+                        <View style={styles.container}>
+
+                            <View style={{ ...customstyles.whitebox, ...customstyles.elevation, ...customstyles.mt30 }}>
+                                <Text style={{ ...customstyles.textCenter, ...customstyles.textxxl }}>Continue answering questions about your identity! for
+                                    different questions toggle your preference in the setting page</Text>
+
+                                <TouchableOpacity onPress={this.startQuiz}
+                                    style={{ ...customstyles.px30, ...customstyles.my20 }}>
+                                    <Text style={customstyles.btnTheme}>START</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </ScrollView>
+                </SafeAreaView >);
+        }
+
+        return (
+            <SafeAreaView style={styles.scrollArea}>
+                <View style={{ ...customstyles.header, ...customstyles.px15 }}>
+                    <Text style={{ ...customstyles.headerHeading, ...customstyles.flexgrow1, }}>QUESTION STORE</Text>
+                </View>
+                <ScrollView style={styles.innerView}>
+                    <View style={styles.container}>
+                        <View style={{ ...customstyles.whitebox, ...customstyles.elevation, ...customstyles.mt20, ...customstyles.p20 }}>
+                            {
+                                this.state.Questions ?
+
+                                    this.state.Questions.map((item, i) => (
+                                        <View key={i}>
+
+                                            <View style={{ ...customstyles.bgtheme, ...customstyles.px10, ...customstyles.py5, ...customstyles.radius5 }}>
+                                                <Text style={{ ...customstyles.h3, ...customstyles.textwhite }}>Question</Text>
+                                            </View>
+
+                                            <View>
+                                                <Text style={{ ...customstyles.h5, ...customstyles.my10 }}>{item.question}</Text>
+                                            </View>
+
+                                            {
+                                                item.question_mode == '1' &&
+                                                <View>
+                                                    <TextInput
+                                                        placeholder={'Answer'}
+                                                        onChangeText={(text_input) => this.setState({ text_input })}
+                                                        style={{ ...customstyles.inputtheme }}
+                                                    />
+                                                </View>
+                                            }
+
+                                            {
+                                                item.question_mode == '2' &&
+
+                                                <View>
+                                                    {
+                                                        this.state.questionOptions.map((radioItem, j) => (
+                                                            <View key={j}>
+
+                                                                <TouchableOpacity style={{ ...customstyles.radiolist }}
+                                                                    onPress={() => {
+                                                                        this.setState({
+                                                                            radio_btn: radioItem.id,
+                                                                        });
+                                                                    }}>
+                                                                    <View style={customstyles.radiolistCircle} />
+                                                                    {radioItem.id === this.state.radio_btn && <View style={customstyles.radiolistCircleselected} />}
+                                                                    <Text style={customstyles.radiolistText}>{radioItem.option}</Text>
+                                                                </TouchableOpacity>
+
+                                                            </View>
+                                                        ))
+                                                    }
+
+                                                </View>
+
+
+                                            }
+
+                                            {
+                                                item.question_mode == '3' &&
+                                                <View>
+                                                    {
+                                                        this.state.questionOptions.map((checkBoxItem, k) => (
+                                                            <View style={{ ...customstyles.checkboxlist, }} key={k}>
+                                                                <Checkbox
+                                                                    value={!!this.state.selectedCheckboxes.includes(checkBoxItem.id)}
+                                                                    onValueChange={() => this.onChange(checkBoxItem.id)}
+                                                                    selected={this.state.selectedCheckboxes.includes(checkBoxItem.id)}
+                                                                    color={!!this.state.selectedCheckboxes.includes(checkBoxItem.id) ? 'transparent' : undefined}
+                                                                    style={{ ...customstyles.mr10, ...customstyles.checkboxhidden }}
+                                                                />
+                                                                <Text style={{ ...customstyles.checkboxarea }}>
+                                                                    {
+                                                                        this.state.selectedCheckboxes.includes(checkBoxItem.id) ? <View style={customstyles.checkboxlistsquareselected} ><Ionicons name="checkbox-outline" size={28} color="#663792" /></View> : <View style={customstyles.checkboxlistsquare} ><Ionicons name="square-outline" size={28} color="#663792" /></View>
+                                                                    }
+                                                                </Text>
+                                                                <Text style={{ ...customstyles.checkboxlistText }}>{checkBoxItem.option}</Text>
+                                                            </View>
+                                                        ))
+                                                    }
+                                                </View>
+                                            }
+
+                                            {
+                                                item.question_mode == '4' &&
+
+                                                <View>
+                                                    <TouchableOpacity onPress={this.pickImage} style={{ ...customstyles.py15, ...customstyles.bgtheme, ...customstyles.rowverticalcenter, ...customstyles.textCenter, ...customstyles.radius10 }}>
+
+                                                        <Ionicons name="cloud-upload-outline" size={36} color="#fff"></Ionicons>
+                                                        <Text style={{ ...customstyles.h5, ...customstyles.textwhite, ...customstyles.ml10 }}>Upload File</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            }
+
+                                            {
+                                                item.question_mode == '5' &&
+                                                <View>
+                                                    <TextInput
+                                                        placeholder={'Numeric Value'}
+                                                        keyboardType={'numeric'}
+                                                        onChangeText={(number_text) => this.setState({ number_text })}
+                                                        style={{ ...customstyles.inputtheme }}
+                                                    />
+                                                </View>
+
+                                            }
+
+                                            {
+                                                item.question_mode == '6' &&
+                                                <View>
+                                                    <TextInput
+                                                        placeholder={'Answer'}
+                                                        onChangeText={(text_input) => this.setState({ text_input })}
+                                                        style={{ ...customstyles.inputtheme }}
+                                                    />
+                                                </View>
+
+                                            }
+
+                                            {/* Skip & Submit button */}
+                                            <View style={customstyles.mt10}>
+                                                <TouchableOpacity onPress={() => this.qusSkip(item.id)} style={customstyles.px30}>
+                                                    <Text style={customstyles.btnRedsmall}>SKIP</Text>
+                                                </TouchableOpacity>
+
+                                                <TouchableOpacity onPress={() => this.submitAnswer(item.id)} style={customstyles.px30}>
+                                                    <Text style={customstyles.btnThemesmall}>SUBMIT</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                            {/* Close */}
+                                        </View>
+                                    ))
+                                    : 'No Data'
+                            }
+                        </View>
+                        <View style={customstyles.mb10}>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    this.props.navigation.goBack(), this.setState({
+                                        clicked: false
+                                    })
+                                }} style={customstyles.my15}>
+                                <Text style={customstyles.btnRed}>EXIT</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </ScrollView>
+            </SafeAreaView >
+        );
+    }
+}
+
+
+const styles = StyleSheet.create({
+
+    scrollArea: {
+        flex: 1,
+        width: "100%",
+        backgroundColor: "white"
+        // paddingTop: StatusBar.currentHeight,
+    },
+    innerView: {
+        height: "100%",
+        paddingHorizontal: 15,
+    },
+    container: {
+        flex: 1,
+        //alignItems: 'center',
+        justifyContent: 'center',
+        // backgroundColor: '#ecf0f1',
+        marginBottom: 30,
+    },
+    section: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 5,
+        marginBottom: 5,
+        shadowColor: 'red',
+        shadowOffset: { width: 10, height: 2 },
+        shadowOpacity: .5,
+        shadowRadius: 7,
+        borderColor: "#eee",
+        borderWidth: 2,
+        backgroundColor: "white",
+        padding: 10,
+        borderRadius: 5,
+    },
+    button: {
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-evenly",
+        alignItems: "center",
+        padding: 10,
+        marginBottom: 20,
+        borderRadius: 30,
+        marginTop: 20,
+    },
+    buttonText: {
+        color: "#663792",
+        fontWeight: "bold",
+        fontSize: 20
+    },
+
+});
+export default Question;

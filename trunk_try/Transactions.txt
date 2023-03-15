@@ -1,0 +1,153 @@
+import React from 'react';
+import { StyleSheet, View, Button, TouchableOpacity, Text, Image, ImageBackground, ScrollView, Modal} from 'react-native';
+import { customstyles } from '../customstyle';
+import Icon from 'react-native-ionicons'
+import TranItem from "./TranItem";
+import { AntDesign } from '@expo/vector-icons'; 
+
+
+
+
+
+function Transactions({route, navigation}){
+    var coinsIcon = require("../assets/Images/coins.png");
+    var cards = require("../assets/Images/cards_credit.png");
+    var vaccount = require("../assets/Images/network_account.png");
+    var mtransfer = require("../assets/Images/transfer.png")
+    var listTransactions = [
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        },
+        {
+            "brand_name": "Citibank",
+            "imagepath": "../assets/Images/transfer.png",
+            "title": "New Account",
+            "amount": 50,
+            "time": "12:00 11/11/2011"
+        }
+    ];
+
+    goWallet = () => {
+        navigation.navigate("NewWallet");
+    }
+    return (
+    <View style={{flex: 4.1, marginLeft: 20, marginRight: 20, marginTop: 30}}>
+        <View style={{alignItems: "center", justifyContent: "space-between", flexDirection: "row"}}>
+            <Text style={{...customstyles.titleText, fontWeight: 'bold', fontSize: 30}}>All Transactions</Text>
+            <TouchableOpacity onPress={goWallet}>
+                <AntDesign name="leftcircle" size={30} color="#663297" style={{justifyContent: "center"}} />
+            </TouchableOpacity>
+        </View>
+        <View style={{flex: 3, alignItems: "center", marginLeft: -20, marginRight: -20, padding: 10}}>
+            {/**List of transactions from for loop mapping*/}
+            <ScrollView style={{padding: 5}}>
+                {
+                    listTransactions.map((object, i) => (
+                        <TouchableOpacity style={styles.tranBackground}>
+                            <Image source={mtransfer} style={styles.imageStyle}></Image>
+                            <View style={styles.textView}>
+                                { object.amount>0 ?
+                                    <Text style={styles.titleText}>+${object.amount}</Text>
+                                :
+                                    <Text style={styles.titleText}>-${object.amount}</Text>
+                                } 
+                                <Text style={styles.dateTimeText}>{object.title}</Text>
+                                <Text style={styles.dateTimeText}>{object.time}</Text>
+                            </View>
+                            <Text style={styles.brandNameText}>{object.brand_name}</Text>
+                        </TouchableOpacity>
+                    ))                        
+                }
+            </ScrollView>
+        </View>
+        <View style={{flex: 0.1}}>
+
+        </View>
+    </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    tranBackground: {
+        width: "100%",
+        backgroundColor: "white",
+        borderColor: "black",
+        borderWidth: 10,
+        flexDirection: "row",
+        alignSelf: "center",
+        borderRadius:16,
+        marginBottom: 10
+    },
+    imageStyle: {
+        width: 50,
+        height: 50,
+        alignSelf: "center",
+        padding: 5
+    },
+    textView:{
+        flexDirection: "column"
+    },
+    titleText:{
+        fontFamily: "Avenir-Next",
+        fontSize: 20,
+        color: "#663297",
+    },
+    dateTimeText: {
+        fontFamily: "Avenir-Next",
+        fontSize: 10,
+        color: "#663297",
+    },
+    brandNameText:{
+        alignSelf: "center",
+        fontSize: 10,
+        opacity: 0.5,
+        fontFamily: "Avenir-Next",
+        padding:2.5,
+        borderColor: "black",
+        borderWidth: 2,
+        marginLeft: "auto",
+        marginRight: 15
+    }
+});
+
+
+export default Transactions;
