@@ -21,7 +21,7 @@ class Couponllist extends Component {
         is_val_checked: false,
         removePrefstatus: false,
         isLoading: false,
-        isLoading1: false,
+        isLoading1: true,
         user_pref: '',
         count: 10,
         const_pref: [],
@@ -48,13 +48,16 @@ class Couponllist extends Component {
                 console.log("Text");
                 console.log(resp);
                 let result = resp.data;
-                console.log("List Coupons: ", resp.data.length)
-                let res = result.data;
-               console.log("resp++++++++++");
-               console.log(result);
-               this.setState({
-                couponarr: res,
-            })
+                console.log("List Coupons: ", result) 
+                console.log("resp++++++++++");
+               //console.log(result.splice(0, 1));
+               setTimeout(() => {
+                this.setState({
+                couponarr: result[0],
+                isLoading1: false
+                })
+                console.log("Coupon Arr" , this.state.couponarr);
+            }, 200);
             
             })
             .catch((error) => {
@@ -126,7 +129,7 @@ class Couponllist extends Component {
                 </View>
             <View style={{flex: 3, alignItems: "center", marginLeft: -20, marginRight: -20, padding: 10}}>
            
-                        {this.state.isLoading   && <Loader />} 
+                        {this.state.isLoading1   && <Loader />} 
                         {this.state.couponarr.length>0 ?  
                 <FlatList
             data={this.state.couponarr}
@@ -137,8 +140,8 @@ class Couponllist extends Component {
                     {item.used>0 ? 
                         <TouchableOpacity style={{...customstyles.filterContainer, display: "flex", flexDirection: "column", backgroundColor: "#662397", width: 150, height: 140, borderRadius: 16, padding: 10, margin: 10, opacity: 1}}>
                             <View style={{display: "flex", flexDirection: "row", justifyContent: "space-between", marginBottom: 5}}>
-                                <View style={{backgroundColor: "#662397", opacity: 0.5, alignSelf: "center", justifyContent: "center", alignItems: "center", width: 125, height: 40, borderRadius: 10}}>
-                                    <Text style={{...customstyles.h5, fontSize: 15, fontWeight: "normal", color: "white"}}>
+                                <View style={{backgroundColor: "#662397", opacity: 0.5, alignSelf: "center", justifyContent: "center", alignItems: "center", textAlign:"center",width: 125, height: 40, borderRadius: 10}}>
+                                    <Text style={{...customstyles.h5, fontSize: 15, fontWeight: "normal", color: "white", alignSelf: "center"}}>
                                         {item.offer_title}
                                     </Text>
                                 </View>
@@ -162,7 +165,7 @@ class Couponllist extends Component {
                     <TouchableOpacity style={{...customstyles.filterContainer, display: "flex", flexDirection: "column", backgroundColor: "#662397", width: 150, height: 120, borderRadius: 16, padding: 10, margin: 10, opacity: 0.75}} onPress={() => this.addcoupon(item.code,item.company_id)}>
                         <View style={{display: "flex", flexDirection: "row", justifyContent: "space-between", marginBottom: 5}}>
                             <Text style={{...customstyles.h5, fontSize: 16, fontWeight: "normal", color: "white",paddingLeft:18,paddingTop:32}}>
-                            Show Coupon
+                            Show Coupon from {item.comp_name}
                             </Text>
                         </View>
                     </TouchableOpacity> 

@@ -1174,10 +1174,13 @@ const customstyles = {
       height: 3,
     },
   },
+  filterContainerOutline: {
+    shadowColor: "#757575", shadowRadius: 8, shadowOpacity: 0.3, shadowOffset: { width: 0, height: 3}
+  },
   filterContainer:{
     padding: 5,
     borderRadius: 12,
-    flexDirection: "column",
+    flexDirection: "row",
     backgroundColor: "#fdfdfd",
     shadowColor: "#757575",
     shadowRadius: 8,

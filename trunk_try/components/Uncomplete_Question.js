@@ -71,6 +71,7 @@ class Uncomplete_Question extends Component {
 
     // Get Question Listing Api
     getRandomQuestion = (userId,offer_id) => {
+        console.log("Testing response")
         this.setState({
             DataisLoaded: false
         })
@@ -83,14 +84,17 @@ class Uncomplete_Question extends Component {
         }
         let resp = commonPost(data)
             .then(resp => {
-                console.log("Resp This:", resp);
-                if( resp.status==0){
+                if(resp.status == 0){
                     this.setState({
-                        question_status: true,
-                        DataisLoaded: true,
+                        question_status: true
                     })  
-                    this.props.navigation.push("MyTabs", {screen: "Offer", params: {user_id: userId,  userDetails: this.props.route.params.userDetails}});
-
+                    try{
+                        this.props.navigation.push("MyTabs", {screen: "Offer", params: {user_id: userId,  userDetails: this.props.route.params.userDetails}});
+                    }
+                    catch(e){
+                        console.log("Whoops");
+                        console.log(e);
+                    }
                 }else{
                 let result= resp.data;
                 console.log(result);
@@ -390,7 +394,7 @@ class Uncomplete_Question extends Component {
                     this.setState({
                         DataisLoaded: true,
                     });
-                }, 5000);
+                }, 2000);
             })
             .catch((error) => {
                 console.log(error)
@@ -578,14 +582,13 @@ class Uncomplete_Question extends Component {
                         <View style={{...customstyles.mb10}}>
                             <TouchableOpacity
                                 onPress={() => {
-                                    this.props.route.params.funcFound();
-                                    //this.props.navigation.navigate('Offer', {reload: true });
-                                    
-                                    this.props.navigation.goBack(), this.setState({
-                                        clicked: false
-                                    })
-                                    
-                                }} style={{backgroundColor: "#aaa", borderRadius: 16}}>
+                                    this.setState({
+                                        question_status: true,
+                                        DataisLoaded: true,
+                                    }) 
+                                    this.props.navigation.push("MyTabs", {screen: "Offer", params: {user_id: this.props.route.params.user_id,  userDetails: this.props.route.params.userDetails}})
+                                    }   
+                                } style={{backgroundColor: "#aaa", borderRadius: 16}}>
                                 <Text style={{padding: 10, textAlign: "center", color: "white", fontSize: 20}}>EXIT</Text>
                             </TouchableOpacity>
                         </View>

@@ -17,17 +17,28 @@ const SLIDER_WIDTH = Dimensions.get('window').width - 40;
 const SLIDER_HEIGHT = Math.round(SLIDER_WIDTH * 3 / 4) - 30;
 const ITEM_WIDTH = Math.round(SLIDER_WIDTH) - 200;
 const ITEM_HEIGHT = Math.round(SLIDER_HEIGHT) - 100;
-const IMG_WIDTH = Math.round(SLIDER_WIDTH)/2 ;
+const IMG_WIDTH = Math.round(SLIDER_WIDTH)/2.5 ;
 const IMG_HEIGHT = Math.round(ITEM_HEIGHT)
+import firebase from '@react-native-firebase/app';
 import messaging from '@react-native-firebase/messaging';
 import Geolocation from '@react-native-community/geolocation';
 import PaginationDot from "react-native-animated-pagination-dot"
 import NormCard from "./NormCard"
 import Dialog from "react-native-dialog";
-//import { initializeApp } from '@react-native-firebase/app';
 const currImage = require("../assets/Images/new_background.jpg");
 const windowHeight = Dimensions.get("window").height;
 import Moment from 'moment';
+
+const RNfirebaseConfig = {
+    apiKey: "AIzaSyDDwxTxsPQ9X0WUd1mI-Go3HFjJrfHpZoM",
+    //authDomain: "note-app-rn.firebaseapp.com",
+    projectId: "identity-wallet-92a26",
+    databaseURL: "",
+    storageBucket: "identity-wallet-92a26.appspot.com",
+    messagingSenderId: "288772838619",
+    appId: "1:288772838619:ios:722745011bebd0e3a9a8fe"
+  };
+  
 
 const infoData = {
    labels: ["Swim", "Bike", "Run"], // optional
@@ -51,6 +62,8 @@ propsForDots: {
 }
 }
  
+const WIN_HEIGHT = Dimensions.get('window').height - 30;
+const screenHeight = Dimensions.get('window').height
  
 var coinsIcon = require("../assets/Images/coins.png");
 var cards = require("../assets/Images/cards_credit.png");
@@ -116,7 +129,8 @@ class ProfileScreen extends Component {
        kycDone: false,
        couponpopup: false,
        email_err: '',
-       current_location:''
+       current_location:'',
+       configured: false
    }
  
    componentDidMount() {
@@ -124,6 +138,10 @@ class ProfileScreen extends Component {
        const value = AsyncStorage.getItem('userInfo')
            .then((value) => {
                console.log("This information")
+               const newValue = AsyncStorage.getItem('allDocs').then((other) => {
+                console.log("z All Docs");
+                console.log(other);
+               })
                console.log(value);
                this.setState({
                    userData: JSON.parse(value),
@@ -159,7 +177,7 @@ class ProfileScreen extends Component {
                 .then(resp => {
                     
                     let result = resp;
-                    console.log(result);
+                    console.log("Current New Result", result);
                     if(result.data){
                     this.setState({transactionList: result.data});
                     }
@@ -211,28 +229,34 @@ class ProfileScreen extends Component {
             //this.viewtransactionlist(this.state.userData.id)
             throw error;
            })
-        messaging().onNotificationOpenedApp(remoteMessage => {
-            console.log('Message handled', remoteMessage);
-            const title= remoteMessage.notification.title;
-            const  body = remoteMessage.notification.body;
-            const  offerid = remoteMessage.data.offerId;
-           
-           Alert.alert(
-            title,
-            body,
-            [
-                {
-                    text: 'Cancel',
-                    onPress: () => this.confirmFun(offerid,3),
-                    style: 'cancel',
-                },
-                { text: 'OK', onPress: () => this.confirmFun(offerid,1) },
-            ]
-        );
-          });
-            //this.checklocationstatus();
-            this.requestPermission();
-            this.getToken();
+        //if(true){
+        console.log("Initialized")
+            messaging().onNotificationOpenedApp(remoteMessage => {
+                console.log('Message handled', remoteMessage);
+                const title= remoteMessage.notification.title;
+                const  body = remoteMessage.notification.body;
+                const  offerid = remoteMessage.data.offerId;
+                
+                Alert.alert(
+                title,
+                body,
+                [
+                    {
+                        text: 'Cancel',
+                        onPress: () => this.confirmFun(offerid,3),
+                        style: 'cancel',
+                    },
+                    { text: 'OK', onPress: () => this.confirmFun(offerid,1) },
+                ]
+            );
+            });
+        //this.checklocationstatus();
+        this.requestPermission();
+        this.getToken();
+        this.setState({
+            configured: true
+        })
+        //}
       
  
        this.getGeneralOffer();
@@ -1117,19 +1141,22 @@ getcouponlist = () => {
 //import AppLoading from 'expo-app-loading';
    render() {
        return (
-               <View style={{backgroundColor: "#20004A"}}>
-                       <View style={customstyles.header}>
-                           <Text style={{fontSize: 35, color: "#fff", fontWeight: 'bold', flex: 1, alignSelf: "center", marginTop: 30, marginLeft: 15}}>My Profile</Text>
+        <SafeAreaView style={{...styles.scrollArea, height: WIN_HEIGHT, backgroundColor: "white"}}>
+               <View style={{backgroundColor: "white"}}>
+                    <View style={{...customstyles.header, width: "95%"}}>
+                       <View style={{ ...customstyles.header, ...customstyles.px15, height: "150%"}}>
+                                <Text style={{...customstyles.titleText, fontSize: 35, color: "#663297", fontWeight: 'bold', marginLeft: 30, flex: 1,color: "#20004A"}}>Welcome, {"\n"}{this.state.userData.fname != '' ? this.state.userData.fname : ''} {this.state.userData.lname != '' ? this.state.userData.lname : ''}</Text>
+                        </View>
                            <Menu
                                visible={this.state.visible}
                                onDismiss={this.closeMenu}
                                style={{
                                    width: 200,
-                                   marginTop: 40,
+                                   marginTop: 50,
                                    borderRadius: 50
                                }}
                                anchor={<Button onPress={this.openMenu}>
-                                   <Ionicons name="person-circle-outline" size={32} color="#fff" />
+                                   <Ionicons name="person-circle-outline" size={32} color="#20004A" />
                                </Button>}>
                                { this.state.userData.current_location!=1  &&   
                                <Menu.Item onPress={this.onPressEditProfile} icon="pencil-outline" title="Edit Profile" style={{ borderColor: "#ddd", borderBottomWidth: 1, }} >
@@ -1147,7 +1174,7 @@ getcouponlist = () => {
                                 <Menu.Item onPress={this.getcouponlist} icon="ticket-percent-outline" title="Coupon" style={{ borderColor: "#ddd", borderBottomWidth: 1, }} />
                                <Menu.Item onPress={this.userLogout} icon="power" title="Logout" />
                            </Menu>
-                       </View>
+                    </View>
                         <Dialog.Container visible={this.state.couponpopup}>
                           <Dialog.Title style={{...customstyles.h4,textAlign:'center'}}>Refer to a friend</Dialog.Title>
                             <Dialog.Description>
@@ -1173,17 +1200,17 @@ getcouponlist = () => {
                                this.state.active_msg !== '' &&
                                <Text style={{ color: 'green' }}>{this.state.active_msg}</Text>
                            }
-                           <Text style={[customstyles.titleText, {color: "white"}] }>Welcome {this.state.userData.fname != '' ? this.state.userData.fname : ''} {this.state.userData.lname != '' ? this.state.userData.lname : ''}</Text>
+                           {/*<Text style={[customstyles.titleText, {color: "#20004A"}] }>Welcome {this.state.userData.fname != '' ? this.state.userData.fname : ''} {this.state.userData.lname != '' ? this.state.userData.lname : ''}</Text>*/}
                        </View>
                        <View style={customstyles.px15}>
-                           <Text style={customstyles.update}>Here are your updates!</Text>
+                           <Text style={{...customstyles.update, color: "#20004A"}}>Here are your updates!</Text>
                        </View>
                        {this.state.userData.coupon_status==0 &&  <View style={customstyles.px15} >
                         <TouchableOpacity  onPress={() => this.createcoupon()}>
-                            <Text style={{...customstyles.update, color: "#198754"}}>Refer a friend!</Text></TouchableOpacity>
+                            <Text style={{...customstyles.update, color: "#20004A", ...customstyles.underline}}>Refer a friend!</Text></TouchableOpacity>
                         </View>}
-                       <View style={[customstyles.row, customstyles.justifyContentcenter, customstyles.px10, { marginBottom: 10}]}>
-                           <View style={[customstyles.p5, customstyles.filterContainer, { width: "48%"}]}>
+                       <View style={[customstyles.row, customstyles.justifyContentcenter, customstyles.px10, { marginBottom: 30, justifyContent: "space-around"}]}>
+                           <TouchableOpacity style={[customstyles.p5, customstyles.filterContainer, { width: "43%", flexDirection: "column"}]} onPress={this.onPressAdd}>
                                    <Text style={[customstyles.titleText, {textAlign: "center", fontWeight: "bold", color: "#663297"}]}>Info Store</Text>
                                    <Text style={{color: "#662397", fontSize: 10, textAlign: "center", padding: 5}}>Upload more documents for easy access!</Text>
                                    <ScrollView persistentScrollbar horizontal style={{display: "flex", flexDirection: "row", backgroundColor: "transparent", height: 40}}>
@@ -1202,7 +1229,7 @@ getcouponlist = () => {
                                    <View style={{padding: 10}}>
                                        {
                                            (this.state.percentValue != null && this.state.firstFrac != null && this.state.secondFrac != null) ?
-                                           <View style={{borderWidth: 2, borderColor: "#663297", padding: 5, borderRadius: 5}}>
+                                           <View style={{...customstyles.filterContainer, flexDirection: "column"}}>
                                                <Text style={[storeStyle.completionText]}>Progress</Text>
                                                <View style={{display: "flex", flexDirection: "row"}}>
                                                    <View style={{flexDirection: 'column', alignSelf: 'flex-start', alignItems: "center"}}>
@@ -1212,7 +1239,7 @@ getcouponlist = () => {
                                                    </View>
                                                    <View style={{padding: 5, flex: 1, flexDirection: "column", alignSelf: "center", backgroundColor: "transparent"}}>
                                                        <Text style={{fontSize: 30, justifyContent: "center", alignSelf: "center", fontWeight: "bold", alignSelf: "center", color: "#662397"}}>{fractionUnicode(this.state.firstFrac,this.state.secondFrac)}</Text>
-                                                       <TouchableOpacity style={[customstyles.btnThemexs, {marginTop: 5}]} onPress={this.onPressAdd} >
+                                                       <TouchableOpacity style={[customstyles.btnThemexs, {marginTop: 5}]} >
                                                            <View style={{ display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "row"}}>
                                                                <Text style={{color: "#662397", fontSize: 10}}>View</Text>
                                                            </View>
@@ -1226,8 +1253,27 @@ getcouponlist = () => {
                                            </View>
                                        }
                                    </View>
-                           </View>
-                           <View style={[customstyles.p15, customstyles.filterContainer, { width: "48%", padding: 10}]}>
+                            </TouchableOpacity>
+                           <TouchableOpacity style={{...customstyles.filterContainer, display: "flex", flexDirection: 'column',  borderRadius: 10,  width: "43%", marginLeft: "5%", height: "100%"}} onPress={this.offerQuestion}>
+                                <View style={{display: "flex", flexDirection: "column", opacity:1}}>
+                                    <Text style={[customstyles.titleText, {marginBottom: 5, alignSelf: "center"}]}>Questions</Text>
+                                </View>
+                                <View style={{display: "flex", flexDirection: "column"}}>
+                                        <View style={{display: "flex", flexDirection: "row"}}>
+                                            <Text style={{fontSize: 10, color: "#662397", textAlign: "center", padding: 10}}>Answer 5 questions today to meet your daily goal!</Text>
+                                        </View>
+                                        <View style={{flexDirection: 'column', backgroundColor: "white", alignSelf: 'center', alignItems: "center", marginTop: 20}}>
+                                            <Progress.Circle size={120} showsText animated={true} style={[customstyles.progressChart]} progress={this.state.numAnswered/5} thickness={25} unfilledColor= "#cbb8d9" color="#662397" borderWidth={0}>
+                                            </Progress.Circle>                                         
+                                        </View>
+                                    </View>
+                                    {/*<TouchableOpacity style={{...customstyles.btnThemexs, marginTop: 30}} onPress={this.offerQuestion} >
+                                        <View style={{ display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "row"}}>
+                                            <Text style={{color: "#662397", padding: 5}}>To Question Store</Text>
+                                        </View>
+                                </TouchableOpacity>*/}
+                            </TouchableOpacity>
+                           {/*<View style={[customstyles.p15, customstyles.filterContainer, { width: "43%", alignSelf: "center", padding: 10, marginLeft: "5%", flexDirection: "column"}]}>
                                <Text style={[customstyles.titleText, {marginBottom: 5, textAlign: "center"}]}>Wallet</Text>
                                {
                                    this.state.is_wallet_check == 0 && this.state.current_location != 1?
@@ -1278,16 +1324,16 @@ getcouponlist = () => {
                                            </ScrollView>
                                        </View>
                                }
-                           </View>
+                            </View>*/}
                         </View>
                        {/* carousel */}
-                       <View style={{display: "flex", flexDirection: "row", ...customstyles.justifyContentcenter, ...customstyles.px10, marginBottom: 10, paddingBottom: windowHeight*0.15}}>
-                       <View style={{...customstyles.filterContainer, display: "flex", flexDirection: 'column',  width: "48%"}}>
+                    <View style={{display: "flex", flexDirection: "row", ...customstyles.justifyContentcenter, ...customstyles.px10, marginBottom: 10, justifyContent: "space-around"}}>
+                       <View style={{display: "flex", flexDirection: 'column',  width: "100%", marginBottom: 20}}>
                            <View style={{display: "flex", flexDirection: "column", opacity:1}}>
-                               <Text style={[customstyles.titleText, {marginBottom: 5, alignSelf: "center"}]}>Offers</Text>
+                               <Text style={[customstyles.titleText, {marginBottom: 5, alignSelf: "flex-start"}]}>Offers</Text>
                            </View>
-                           <Text style={{fontSize: 10, color: "#662397", textAlign: "center", padding: 10}}>The latest data offers in the marketplace today...</Text>
-                           <View onPress={this.onPressOffer} style={{display: "flex", flexDirection: "column" }}>
+                           <Text style={{fontSize: 10, color: "#662397", textAlign: "auto", padding: 10}}>The latest data offers in the marketplace today...</Text>
+                           <View onPress={this.onPressOffer} style={{display: "flex", flexDirection: "row" }}>
                                <Carousel
                                    style={{marginLeft: "auto", justifyContent: "center"}}
                                    layout={"default"}
@@ -1312,37 +1358,17 @@ getcouponlist = () => {
                                     vertical={false}
                                 />
                             </View>
-                           <TouchableOpacity style={{...customstyles.btnThemexs}} onPress={this.offerNavigate} >
+                            {/*<TouchableOpacity style={{...customstyles.btnThemexs}} onPress={this.offerNavigate} >
                                     <View style={{ display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "row"}}>
                                         <Text style={{color: "#662397", padding: 5}}>Visit Marketplace</Text>
                                     </View>
-                            </TouchableOpacity>
+                            </TouchableOpacity>*/}
                        </View>
                        {/* Close */}
-                       <View style={{...customstyles.filterContainer, display: "flex", flexDirection: 'column',  borderRadius: 10, marginLeft: 15, width: "48%"}}>
-                           <View style={{display: "flex", flexDirection: "column", opacity:1}}>
-                               <Text style={[customstyles.titleText, {marginBottom: 5, alignSelf: "center"}]}>Questions</Text>
-                           </View>
-                           <View style={{display: "flex", flexDirection: "column", justifyContent: "space-around"}}>
-                                <View style={{display: "flex", flexDirection: "row"}}>
-                                    <Text style={{fontSize: 10, color: "#662397", textAlign: "center", padding: 10}}>Answer 5 questions today to meet your daily goal!</Text>
-                                </View>
-                                <View style={{flexDirection: 'column', alignSelf: 'center', alignItems: "center"}}>
-                                    <Progress.Circle size={120} showsText animated={true} style={[customstyles.progressChart]} progress={this.state.numAnswered/5} thickness={25} unfilledColor= "#cbb8d9" color="#662397" borderWidth={0}>
-                                    </Progress.Circle>                                         
-                                </View>
-                            </View>
-                            <TouchableOpacity style={{...customstyles.btnThemexs, marginTop: 30}} onPress={this.offerQuestion} >
-                                <View style={{ display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "row"}}>
-                                    <Text style={{color: "#662397", padding: 5}}>To Question Store</Text>
-                                </View>
-                            </TouchableOpacity>
                        </View>
-                       
-                       </View>
-                       <View style={{padding: 20}}></View>
                        </ScrollView>
                </View >
+            </SafeAreaView>
        );
    }
 }
@@ -1353,7 +1379,7 @@ const styles = StyleSheet.create({
        width: "100%",
        // paddingTop: StatusBar.currentHeight,
        paddingBottom: 0,
-       backgroundColor: "#20004A",
+       backgroundColor: "white",
    },
    innerView: {
        //flex: 1,

@@ -157,7 +157,7 @@ class Forgot extends Component {
                             }}
                         >
                             <Text style={styles.buttonText}>
-                                {this.state.isLoading ? "SENDING..." : "SUBMIT"}
+                                {this.state.isLoading ? "LOGGING IN..." : "SUBMIT"}
                             </Text>
                             {this.state.isLoading && <Loader />}
                         </View>

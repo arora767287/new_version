@@ -222,10 +222,12 @@ class Offer extends Component{
         allChecks: false,
         termsCheck: false,
         tempBalance: 0,
-        subOfferIds: []
+        subOfferIds: [],
+        allSubscribed: [1] 
     }
 
     componentDidMount() {
+        console.log("Why work no?")
         console.log("Route Params: ", this.props);
         let user_id = this.props.route.params.user_id;
         let newUserDetails = this.props.route.params.userDetails;
@@ -233,21 +235,24 @@ class Offer extends Component{
             userId: user_id,
             allUserInfo: newUserDetails
         });
-        if(this.props.route.params.reload){
+        //this.subscribeofferfun(user_id);
+        this.getOffer(user_id);
+        /*if(this.props.route.params.reload){
             this.subscribeofferfun();
             console.log("RELOADING")
         } else {
+            this.subscribeofferfun();
             this.getOffer();
-        }
+        }*/
         this.companyList();
         this.checklocationstatus();
-        this.getUserValuation();
-        this.checkSubscribeIntersect(this.props.route.params.user_id);
+        this.getUserValuation(user_id);
+        //this.checkSubscribeIntersect(this.props.route.params.user_id);
         console.log("currentLatitude+++++++++++++++")
       
     }
 
-    checkSubscribeIntersect = (user_id) => {
+    checkSubscribeIntersect = (user_id) => { 
         let data = {
             api_url: 'getSubcribeOfferList',
             user_id:user_id,
@@ -398,24 +403,21 @@ class Offer extends Component{
         }, () => {
             console.log("checks")
         })
-        if(this.props.route.params.reload){
-            this.subscribeofferfun();
-        } else {
-            this.getOffer();
-        }
+        this.getOffer(this.state.userId);
         this.companyList();
         this.checklocationstatus();
         this.getUserValuation();
-        this.checkSubscribeIntersect(this.props.route.params.user_id);
+        //this.checkSubscribeIntersect(this.props.route.params.user_id);
     }
 
     componentDidUpdate(prevProps){
         if(prevProps.reload == true){
-            this.subscribeofferfun();
+            //this.subscribeofferfun(this.props.route.params.user_id);
+            this.getOffer(this.props.route.params.user_id);
             this.companyList();
             this.checklocationstatus();
             this.getUserValuation();
-            this.checkSubscribeIntersect(this.props.route.params.user_id);
+            //this.checkSubscribeIntersect(this.props.route.params.user_id);
         }
     }
 
@@ -516,24 +518,28 @@ class Offer extends Component{
         }
     }
 
-    getUserValuation = () => {
-        const value = getValuation(this.state.userId).then(result => {
+    getUserValuation = (user_id) => {
+        console.log("User ID Valuation: ", user_id)
+        const value = getValuation(user_id).then(result => {
             console.log("Valuation Result ", result);
             //var currValue = result.agg_valuation; //Change based on actual way to get.
-            console.log("Is it true: ", result.agg_valuation);
-            if(result.status_code == 200){
+            console.log("Custom Valuation: ", result.Custom_Valuation);
+            if(result.Custom_Valuation == null){
+                Alert.alert(
+                    'Your Identity Valuation',
+                    'No valuation currently. Please complete the "Identity Data Valuation #1" offer for us to put an initial estimate on here!',
+                    [
+                        {
+                            text: 'Cancel',
+                            onPress: () => console.log('Cancel Pressed'),
+                            style: 'cancel',
+                        },
+                        { text: 'OK', onPress: () => {} },
+                    ]
+                );
+            } else {
                 this.setState({
-                    tempBalance: result.agg_valuation
-                })
-            } 
-            else if(result.agg_valuation){
-                this.setState({
-                    tempBalance: (Math.round(result.agg_valuation * 100) / 100).toFixed(2) 
-                })
-            }
-            else {
-                this.setState({
-                    tempBalance: 0
+                    tempBalance: result.Custom_Valuation
                 })
             }
         }).catch((error) => {
@@ -543,28 +549,64 @@ class Offer extends Component{
     }
 
     // Get Offer
-    getOffer = () => {
+    getOffer = (userId) => {
         let data = {
-            user_id:this.state.userId,
+            user_id:userId,
             api_url: 'getGeneralOffer'
         }
         var resp = commonPost(data)
-            .then(resp => {
-                console.log("ListOffers", resp);
-                let result = resp.data;
-                var newFours = this.groupFours(result);
-                this.setState({
-                    SECTIONS: result,
-                    displaySections: newFours,
-                    fourSections: newFours,
-                })
-                this.setState({
-                    DataisLoaded: true
-                })
+            .then(newResp => { 
+                console.log("ListOffers", newResp);
+                var curr_offers = []
+                    console.log("Found ID: ", userId);
+                    let data = {
+                        api_url: 'getSubcribeOfferList',
+                        user_id:userId,
+                    }
+                    var resp = commonPost(data)
+                    .then(resp => {
+                        let all_sub = resp.data;
+                        let result = [];
+                        var all_offers = []
+                        console.log("All Subscribed", resp.data);
+                        console.log("All Others", this.state.allSubscribed);
+                        if(all_sub == null){
+                            all_sub = [];
+                        }
+                        for(let i = 0; i < all_sub.length; i++){
+                            curr_offers.push(all_sub[i].id);
+                            all_offers.push(all_sub[i].id);
+                        }
+                        for(let i = 0; i < newResp.data.length; i++){
+                            if(!curr_offers.includes(newResp.data[i].id)){
+                                result.push(newResp.data[i]);
+                                all_offers.push(newResp.data[i].id);
+                            }
+                        }
+                        for(let i = 0; i < all_sub.length; i++){
+                            result.push(all_sub[i]);
+                        }
+                        console.log("All IDS: ", all_offers)
+                        var newResult = result.reverse()
+                        var newFours = this.groupFours(newResult);
+
+                        this.setState({
+                            SECTIONS: newResult,
+                            displaySections: newFours,
+                            fourSections: newFours,
+                        })
+                        this.setState({
+                            DataisLoaded: true
+                        })
+                        console.log("New Subscribed", resp);
+                    })
+                    .catch((error) => {
+                        console.log(error)
+                    })
             })
             .catch((error) => {
                 console.log(error)
-                this.getOffer()
+                //this.getOffer()
             })
     }
     // Close
@@ -607,36 +649,33 @@ class Offer extends Component{
     // Close
 
     // User Concent  
-    subscribeofferfun = () => {
-        this.setState({
-            subscribeoffer: !this.state.subscribeoffer
-        })
-        console.log(this.state.subscribeoffer);
-        if(!this.state.subscribeoffer){
-            let data = {
-                api_url: 'getSubcribeOfferList',
-                user_id:this.state.userId,
-            }
-            var resp = commonPost(data)
-                .then(resp => {
-                    let result = resp.data;
-                    console.log("Subscribed", result);
-                    var newFours = this.groupFours(result);
-                    this.setState({
-                        SECTIONS: result,
-                        displaySections: newFours,
-                        fourSections: newFours,
-                        DataisLoaded: true,
-                    })
-                })
-                .catch((error) => {
-                    console.log(error)
-                })
-        }else{
-            this.getOffer(); 
+    /*subscribeofferfun = (userId) => {
+        console.log("Found ID: ", this.state.userId);
+        let data = {
+            api_url: 'getSubcribeOfferList',
+            user_id:userId,
         }
+        var resp = commonPost(data)
+            .then(resp => {
+                let result = resp.data;
+                console.log("New Subscribed", resp);
+                var newFours = this.groupFours(result);
+                setTimeout(() => {
+                    this.setState({
+                        //SECTIONS: result,
+                        //displaySections: newFours,
+                        //fourSections: newFours,
+                        DataisLoaded: true,
+                        //DataisLoaded: true,
+                        allSubscribed: result
+                    })
+                }, 50)
+            })
+            .catch((error) => {
+                console.log(error)
+            })
         //console.log(this.state.userConcent);
-    }
+    }*/
     handleConcent = () => {
         this.setState({ userConcent: !this.state.userConcent });
         //console.log(this.state.userConcent);
@@ -898,6 +937,7 @@ class Offer extends Component{
         let offer_data = this.state.selectedOfferData ? this.state.selectedOfferData.toString() : '';
 
         if ((selected_options == '')) {
+            console.log("None Selected");
             this.setState({
                 form_err: 'Please select the type of offer you are providing your data for (data sharing, or open to contact)'
             });
@@ -915,6 +955,7 @@ class Offer extends Component{
             }, 5000);
             return;
         } else if ((!this.state.userConcent)) {
+            console.log("No Consent");
             this.setState({
                 form_err: 'Please agree to the terms of this offer'
             });
@@ -941,6 +982,8 @@ class Offer extends Component{
                 offer_data: offer_data,
                 api_url: 'saveUserOffer'
             }
+            console.log("Offer Data Print: ", data);
+            console.log("Info: ", this.state.offerInfo)
             var resp = commonPostText(data)
                 .then(resp => {
                     let result = resp;
@@ -974,7 +1017,7 @@ class Offer extends Component{
 
                     setTimeout(() => {
                         this.handleClose();
-                        this.props.navigation.navigate("Offer", { user_id: this.props.route.params.user_id, userDetails: this.props.route.params.userDetails})
+                        this.props.navigation.navigate("Offer", { user_id: this.state.userId, userDetails: this.props.route.params.userDetails})
                     }, 500);
                 })
                 .catch((error) => {
@@ -1065,40 +1108,40 @@ class Offer extends Component{
             );
             */
            return(
-               <View style={{...customstyles.filterContainer, padding: 10, marginBottom: 10}}>
+               <View style={{...customstyles.filterContainer, flexDirection: "column", padding: 10, marginBottom: 10}}>
                     <TouchableOpacity onPress={this.handleShowing}>
-                        <Text style={{padding: 10, fontSize: 20, fontWeight: "normal", color: "#662397"}}>Customize Search Filters </Text>
+                        <Text style={{padding: 10, fontSize: 20, fontWeight: "normal", color: "#20004A"}}>Customize Search Filters </Text>
                     </TouchableOpacity>
                    <View style={{display: "flex", flexDirection: "column"}}>
                         <View style={{display: "flex", flexDirection: "row", justifyContent: "space-between", width: "80%", alignSelf: "center"}}>
                             <View style={{display: "flex", flexDirection: "column"}}>
                                 <TouchableOpacity style={{...customstyles.searchBarStyleIcons, flexDirection: "column"}} onPress={this.onDollarPress}>
-                                    <Ionicons name="logo-usd" size={25} color="#662397" />
+                                    <Ionicons name="logo-usd" size={25} color="#20004A" />
                                 </TouchableOpacity>
                                 <Text style={{...customstyles.h5, fontSize: 10, textAlign: "center", fontWeight: "normal", marginTop: 2}}>Price</Text>
                             </View>
                             <View style={{display: "flex", flexDirection: "column"}}>
                                 <TouchableOpacity style={{...customstyles.searchBarStyleIcons, flexDirection: "column"}} onPress={this.onPrefPress}>
-                                    <Ionicons name="toggle" size={25} color="#662397" />
+                                    <Ionicons name="toggle" size={25} color="#20004A" />
                                 </TouchableOpacity>
                                 <Text style={{...customstyles.h5, fontSize: 10, textAlign: "center", fontWeight: "normal", marginTop: 2}}>Preferences</Text>
                             </View>
-                            <View style={{display: "flex", flexDirection: "column"}}>
+                            <View style={{display: "flex", flexDirection: "column", }}>
                                 <TouchableOpacity style={{...customstyles.searchBarStyleIcons, flexDirection: "column"}} onPress={this.onSearchPress}>
-                                    <Ionicons name="search" size={25} color="#662397" />
+                                    <Ionicons name="search" size={25} color="#20004A" />
                                 </TouchableOpacity>
                                 <Text style={{...customstyles.h5, fontSize: 10, textAlign: "center", fontWeight: "normal", marginTop: 2}}>Search</Text>
                             </View>
                         </View>
-                        <View style={{ alignSelf: "center", ...customstyles.filterContainer, width: "100%", marginTop: 15}}>
+                        <View style={{ ...customstyles.filterContainer, width: "100%", marginTop: 15}}>
                             {
                                 this.state.dollarPress ? 
-                                <View style={{display: "flex"}}>
-                                    <Text style={{...customstyles.h5, fontSize: 20, fontWeight: "bold", alignSelf: "flex-start", padding: 5}}>PRICE RANGE</Text>
+                                <View style={{display: "flex", alignSelf: "center", width: "100%"}}>
+                                    <Text style={{...customstyles.h5, fontSize: 20, fontWeight: "bold", padding: 5}}>PRICE RANGE</Text>
                                     <View style={{display: "flex", flexDirection: "row", justifyContent: "space-around"}}> 
                                         <Text style={{...customstyles.h5, fontSize: 20, fontWeight: "normal", alignSelf: "center"}}>${this.state.fromValue} - ${this.state.toValue}</Text>
                                     </View>
-                                    <View style={{justifyContent: "center", alignSelf: "center", display: "flex", flexDirection: "column"}}>
+                                    <View style={{justifyContent: "center", alignSelf: "center"}}>
                                         <MultiSlider
                                         values={[this.state.fromValue, this.state.toValue]}
                                         onValuesChange={this.multiSliderValuesChange}
@@ -1108,7 +1151,7 @@ class Offer extends Component{
                                         allowOverlap
                                         snapped
                                         customLabel={CustomLabel}
-                                        selectedStyle={{backgroundColor: "#662397", width: "90%"}}
+                                        selectedStyle={{backgroundColor: "#20004A", width: "100%"}}
                                         />
                                         <TouchableOpacity onPress={this.addFilter} >
                                             <Text style={{ ...styles.addcardbtn }}>SEARCH</Text>
@@ -1116,22 +1159,22 @@ class Offer extends Component{
                                     </View>
                                 </View>
                                 : this.state.prefPress ?
-                                <View style={{display: "flex", flexDirection: "column"}}>
-                                    <Text style={{borderColor: "#662397", color: "#662397", fontWeight: "bold", padding: 5, fontSize: 20, padding: 5}}>PREFERENCES</Text>
-                                    <View style={{display: "flex", flexDirection: "row", padding: 5}}>
+                                <View style={{display: "flex", flexDirection: "column", width: "100%"}}>
+                                    <Text style={{borderColor: "#20004A", color: "#20004A", fontWeight: "bold", padding: 5, fontSize: 20, padding:5}}>PREFERENCES</Text>
+                                    <View style={{display: "flex", flexDirection: "row", padding: 5, alignSelf: "center"}}>
                                         <View style={{ ...customstyles.checkboxinlineblock, ...customstyles.mt10, justifyContent: "center", flexDirection: "row", flex: 1, marginLeft: 20, marginRight: 20}}>
                                             <Checkbox
                                                 value={this.state.apply_pref}
                                                 onValueChange={this.addFilter}
                                                 selected={this.state.apply_pref}
-                                                color="#662397"
-                                                style={{ ...customstyles.mr10, ...customstyles.checkboxhidden, alignSelf: "center", flex: 0.2, }}
+                                                color="#20004A"
+                                                style={{ ...customstyles.mr10, ...customstyles.checkboxhidden, alignSelf: "center"}}
                                             />
                                             <Text style={{...customstyles.h5, fontWeight: "normal", fontSize: 15, alignSelf: "center", justifyContent: "center", padding: 5, flex:0.7}}>Apply category preferences</Text>
                                         </View>
                                         <View style={{ ...customstyles.checkboxinlineblock, ...customstyles.mt10, justifyContent: "center", flexDirection: "row", flex: 1, padding: 10}}>
-                                            <TouchableOpacity style={{...customstyles.searchBarStyleIcons, shadowOpacity: 0, borderRadius: 10, borderColor: "#662397",  borderWidth: 2, flexDirection: "row"}}  onPress={this.onHandleCategory}>
-                                                <Ionicons name="settings" size={25} color="#662397" />
+                                            <TouchableOpacity style={{...customstyles.searchBarStyleIcons, shadowOpacity: 0, borderRadius: 10, borderColor: "#20004A",  borderWidth: 2, flexDirection: "row"}}  onPress={this.onHandleCategory}>
+                                                <Ionicons name="settings" size={25} color="#20004A" />
                                             </TouchableOpacity>
                                             <Text style={{...customstyles.h5, fontWeight: "normal", fontSize: 15, alignSelf: "center", justifyContent: "center", padding: 5}}>Categories</Text>
                                         </View>
@@ -1140,26 +1183,26 @@ class Offer extends Component{
                                 : this.state.searchPress ?
                                 <View style={{display: "flex", flexDirection: "column", padding: 5}}>
                                     <View style={{display: "flex", flexDirection: "column", justifyContent: "space-between"}}>
-                                        <Text style={{borderColor: "#662397", color: "#662397", fontWeight: "bold", padding: 5, fontSize: 20}}>SEARCH</Text>
+                                        <Text style={{borderColor: "#20004A", color: "#20004A", fontWeight: "bold", padding: 5, fontSize: 20}}>SEARCH</Text>
                                         <View style={{display: "flex", flexDirection: "row", padding: 15}}>
                                             <View style={{display: "flex", flexDirection: "row", padding: 5}}>
-                                                <View style={{flexDirection: "row", borderColor: "#662397", borderWidth: 2, borderRadius: 10, color: "#662397"}}>
+                                                <View style={{flexDirection: "row", borderColor: "#20004A", borderWidth: 2, borderRadius: 10, color: "#20004A"}}>
                                                     <RadioButton
                                                         value="by company"
                                                         status={ this.state.checked === 'by company' ? 'checked' : 'unchecked' }
                                                         onPress={this.handleChecked}
-                                                        color="#662397"
+                                                        color="#20004A"
                                                     />
                                                 </View>
                                                 <Text style={{...customstyles.h5, fontWeight: "normal", fontSize: 15, alignSelf: "center", justifyContent: "center", padding: 5}}>by company</Text>
                                             </View>
                                             <View style={{display: "flex", flexDirection: "row", alignSelf: "center", justifyContent: "center", padding: 5}}>
-                                                <View style={{flexDirection: "row", borderColor: "#662397", borderWidth: 2, borderRadius: 10, color: "#662397", width:40, height: 40}}>
+                                                <View style={{flexDirection: "row", borderColor: "#20004A", borderWidth: 2, borderRadius: 10, color: "#20004A", width:40, height: 40}}>
                                                 <RadioButton
                                                     value="by name"
                                                     status={ this.state.checked === 'by name' ? 'checked' : 'unchecked' }
                                                     onPress={this.handleChecked}
-                                                    color="#662397"
+                                                    color="#20004A"
                                                     
                                                 />
                                                 </View>
@@ -1197,7 +1240,7 @@ class Offer extends Component{
         }
         return(
             <TouchableOpacity style={{...customstyles.filterContainer, padding: 10, marginBottom: 10}} onPress={this.handleShowing}>
-                <Text style={{padding: 10, fontSize: 20, fontWeight: "normal", color: "#662397"}}>Customize Filters </Text>
+                <Text style={{padding: 10, fontSize: 20, fontWeight: "normal", color: "#20004A"}}>Customize Filters </Text>
             </TouchableOpacity>
         )
     }
@@ -1215,24 +1258,24 @@ class Offer extends Component{
                 
                     <>      
                         <View style={{ ...customstyles.header, ...customstyles.px15 }}>
-                            <Text style={{ ...customstyles.titleText, fontSize: 35, color: "#663297", fontWeight: 'bold', flex: 1, marginLeft: 15, marginBottom: 10, color: "white"}}>Marketplace</Text>
+                            <Text style={{ ...customstyles.titleText, fontSize: 35, color: "#663297", fontWeight: 'bold', flex: 1, marginLeft: 15, marginBottom: 10, color: "#20004A"}}>Marketplace</Text>
                         </View>
                       
                         <View style={styles.container}>
                                 <View>
-                                    <View style={{backgroundColor: "white", padding: 10, borderRadius: 16, flex: 1, marginBottom: 20, alignSelf: "center", width: "100%", justifyContent: "center"}}>
-                                        <Text style={{...customstyles.walletBalanceText, fontSize:15, color: "#662397", marginLeft: 15}}>Your Current Estimated Data Valuation: </Text>
-                                        <Text style={{...customstyles.titleText, color: "#662397", marginLeft: 15,marginRight: 30, fontSize: 24}}>$ {this.state.tempBalance}</Text>
+                                    <View style={{backgroundColor: "white", padding: 10, borderRadius: 16, flex: 1, marginBottom: 20, alignSelf: "center", width: "100%", justifyContent: "center", ...customstyles.filterContainer, flexDirection: "column"}}>
+                                        <Text style={{...customstyles.walletBalanceText, fontSize:15, color: "#20004A", marginLeft: 15}}>Your Current Estimated Data Valuation: </Text>
+                                        <Text style={{...customstyles.titleText, color: "#20004A", marginLeft: 15,marginRight: 30, fontSize: 24}}>$ {this.state.tempBalance}</Text>
                                     </View>  
                                     {this.renderContent()}
                                     <View style={{display: "flex", flexDirection: "row", justifyContent: "space-between", marginLeft: 10, marginTop: 20}}>
                                         <Text style={{fontSize: 25, color: "white"}}>Available Offers</Text>
-                                        <View style={{alignSelf: "center"}}>
+                                        {/*<View style={{alignSelf: "center"}}>
                                             <View>
                                                 <View style={{display: "flex", flexDirection: "row", alignItems: "center"}}>
                                                     <Checkbox
                                                         value={!!this.state.subscribeoffer}
-                                                        onValueChange={() => this.subscribeofferfun()}
+                                                        onValueChange={() => {}}
                                                         selected={this.state.subscribeoffer}
                                                         color="white"
                                                         style={{ ...customstyles.checkboxhidden3, alignSelf: "center", justifyContent: "center", marginLeft:180, ...customstyles.ml10 }} />
@@ -1241,7 +1284,7 @@ class Offer extends Component{
                                                     </View>
                                                 </View>
                                             </View>
-                                        </View>
+                                            </View>*/}
                                     </View>
                                     {this.state.displaySections.length > 0 ?
                                         <View style={{justifyContent: "center", alignSelf: "center"}}>
@@ -1262,7 +1305,7 @@ class Offer extends Component{
                                                 />
                                                 <View style={{display: "flex", flexDirection: "column", alignSelf: "center", justifyContent: "center", marginTop: 10}}>
                                                     <PaginationDot
-                                                    activeDotColor={'#662397'}
+                                                    activeDotColor={'#20004A'}
                                                     curPage={this.state.activeIndex}
                                                     sizeRatio={0.5}
                                                     maxPage={this.state.displaySections.length}
@@ -1281,7 +1324,7 @@ class Offer extends Component{
                             
                             this.state.setOpen &&
                             <View style={{height: WIN_HEIGHT}}>
-                                <Text style={{ ...customstyles.titleText, fontSize: 35, marginLeft: 20, marginTop: 15, color: "#662397", fontWeight: 'bold', color: "white"}}>Offer Info</Text>
+                                <Text style={{ ...customstyles.titleText, fontSize: 35, marginLeft: 20, marginTop: 15, color: "#20004A", fontWeight: 'bold'}}>Offer Info</Text>
                                <View>
                                     {
                                         this.state.form_err != '' &&
@@ -1295,30 +1338,30 @@ class Offer extends Component{
                                         <OfferInfo navigation={this.props.navigation} route={this.props.route} comp_name={this.state.offervalue1} offer_title={this.state.offervalue2} data_share_price={this.state.offervalue3}open_to_contact_price={this.state.offervalue4} offer_description={this.state.offervalue5}/>
                                         <View style={{ width: "90%", alignSelf: "center"}}>
                                         <TouchableOpacity style={{...customstyles.filterContainer, padding: 10, marginBottom: 10}} onPress={this.handleShowTicks}>
-                                            <Text style={{padding: 10, fontSize: 20, fontWeight: "normal", color: "#662397"}}>Offer Preference </Text>
+                                            <Text style={{padding: 10, fontSize: 20, fontWeight: "normal", color: "#20004A"}}>Offer Preference </Text>
                                         </TouchableOpacity>
                                         <View>
                                         {
                                             this.state.prefTicks &&
                                             <><View style={{ ...customstyles.row }}>
                                                 <ModelAlert
-                                                                    Alert_Visibility={this.state.removePrefstatus}
-                                                                    cancelAlertBox={this.cancelRemovePref}
-                                                                    title={"Geo Location"}
-                                                                    body={"Kindy Enable your geo location"}
-                                                                    confirmalert={this.confirmRemovePref}
-                                                                    />
+                                                    Alert_Visibility={this.state.removePrefstatus}
+                                                    cancelAlertBox={this.cancelRemovePref}
+                                                    title={"Geo Location"}
+                                                    body={"Kindy enable geo-location tracking"}
+                                                    confirmalert={this.confirmRemovePref}
+                                                    />
                                                     <View>
                                                         <View style={{ ...customstyles.checkboxlist, ...customstyles.ml10, display: "flex", flexDirection: "row", backgroundColor: "white", borderRadius: 10, borderWidth: 0, width: "95%"}}>
                                                             <Checkbox
                                                                 value={!!this.state.selectedCheckboxes.includes(1)}
                                                                 onValueChange={() => this.handlePrefrence(1)}
                                                                 selected={this.state.selectedCheckboxes.includes(1)}
-                                                                color="#662397"
+                                                                color="#20004A"
                                                                 style={{ ...customstyles.checkboxhidden2, alignSelf: "center", justifyContent: "center", marginLeft: 20}} />
-                                                            <View style={{ ...customstyles.checkboxlistTextinline, display: "flex", flexDirection: "row", justifyContent: "space-between", borderRadius: 10}}>
-                                                                <Text style={{color: "#662397" }}>Data Sharing</Text>
-                                                                <Text style={{ color: "#662397", marginLeft: "auto" ,paddingRight:20}}>${this.state.offerPopUp.data_share_price}</Text>
+                                                            <View style={{ ...customstyles.checkboxlistTextinline, display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderRadius: 10}}>
+                                                                <Text style={{color: "#20004A", width: "80%"}}>Data Sharing</Text>
+                                                                <Text style={{ color: "#20004A", marginLeft: "auto" ,paddingRight:20}}>${this.state.offerPopUp.data_share_price}</Text>
                                                             </View>
                                                         </View>
                         
@@ -1331,11 +1374,11 @@ class Offer extends Component{
                                                                     value={!!this.state.selectedCheckboxes.includes(2)}
                                                                     onValueChange={() => this.handlePrefrence(2)}
                                                                     selected={this.state.selectedCheckboxes.includes(2)}
-                                                                    color="#662397"
+                                                                    color="#20004A"
                                                                     style={{ ...customstyles.checkboxhidden2, alignSelf: "center", justifyContent: "center", ...customstyles.ml20, marginLeft: 20}} />
                                                                 <View style={{ ...customstyles.checkboxlistTextinline, display: "flex", flexDirection: "row", justifyContent: "space-between"}}>
-                                                                    <Text style={{ color: "#662397" }}>Open to Contact</Text>
-                                                                    <Text style={{ color: "#662397", marginLeft: "auto",paddingRight:20 }}>${this.state.offerPopUp.open_to_contact_price}</Text>
+                                                                    <Text style={{ color: "#20004A" }}>Open to Contact</Text>
+                                                                    <Text style={{ color: "#20004A", marginLeft: "auto",paddingRight:20 }}>${this.state.offerPopUp.open_to_contact_price}</Text>
                                                                 </View>
                                                             </View>
 
@@ -1347,7 +1390,7 @@ class Offer extends Component{
                                             {
                                             this.state.selectedCheckboxes.includes(1) &&
                                             <TouchableOpacity style={{...customstyles.filterContainer, padding: 10, marginBottom: 10}} onPress={this.handleAllChecks}>
-                                                <Text style={{padding: 10, fontSize: 20, fontWeight: "normal", color: "#662397"}}>Data Sharing Settings </Text>
+                                                <Text style={{padding: 10, fontSize: 20, fontWeight: "normal", color: "#20004A"}}>Data Sharing Settings </Text>
                                             </TouchableOpacity>
                                             }   
                                             <View>
@@ -1358,26 +1401,26 @@ class Offer extends Component{
                                                     this.state.offerInfo.map((data, j) => (
                                                         <View key={j} >
                                                             <View style={{ ...customstyles.row, }}>
-                                                                    <View style={{ ...customstyles.checkboxlist,  ...customstyles.ml10, flexDirection: "row", backgroundColor: "white", borderRadius: 10, borderWidth: 0, width: "100%"}}>
-                                                                        <Checkbox
-                                                                            value={!!this.state.selectedOfferData.includes(data.id)}
-                                                                            onValueChange={() => this.onChangeOffer(data.id)}
-                                                                            selected={this.state.selectedOfferData.includes(data.id)}
-                                                                            color="#662397"
-                                                                            style={{...customstyles.checkboxhidden2, alignSelf: "center", justifyContent: "center", marginLeft: 20}}/>
-                                                                        <View style={{ ...customstyles.checkboxlistTextinline, display: "flex", flexDirection: "row",justifyContent: "space-between"}}>
-                                                                            <Text style={{...customstyles.mr10, color: "#662397"}}>{data.keycode}</Text>
-                                                                            <Text style={{color: "#662397", marginLeft: "auto",paddingRight:20}}>${data.price}</Text>
-                                                                        </View>
+                                                                <View style={{ ...customstyles.checkboxlist,  ...customstyles.ml10, flexDirection: "row", backgroundColor: "white", borderRadius: 10, borderWidth: 0, width: "100%"}}>
+                                                                    <Checkbox
+                                                                        value={!!this.state.selectedOfferData.includes(data.id)}
+                                                                        onValueChange={() => this.onChangeOffer(data.id)}
+                                                                        selected={this.state.selectedOfferData.includes(data.id)}
+                                                                        color="#20004A"
+                                                                        style={{...customstyles.checkboxhidden2, alignSelf: "center", justifyContent: "center", marginLeft: 20}}/>
+                                                                    <View style={{ ...customstyles.checkboxlistTextinline, display: "flex", flexDirection: "row",justifyContent: "space-between", alignItems: "center"}}>
+                                                                        <Text style={{...customstyles.mr10, color: "#20004A", width: "80%"}}>{data.keycode}</Text>
+                                                                        <Text style={{color: "#20004A", marginLeft: "auto",paddingRight:20}}>${data.price}</Text>
                                                                     </View>
                                                                 </View>
+                                                            </View>
                                                         </View>
                                                     ))
                                                 }
 
                                             </View>
                                             <TouchableOpacity style={{...customstyles.filterContainer, padding: 10, marginBottom: 10}} onPress={this.handleTerms}>
-                                                 <Text style={{padding: 10, fontSize: 20, fontWeight: "normal", color: "#662397"}}>Offer Terms </Text>
+                                                 <Text style={{padding: 10, fontSize: 20, fontWeight: "normal", color: "#20004A"}}>Offer Terms </Text>
                                             </TouchableOpacity>
                                             {
                                                 this.state.termsCheck &&
@@ -1393,15 +1436,15 @@ class Offer extends Component{
                                                 value={this.state.userConcent}
                                                 onValueChange={() => this.handleConcent()}
                                                 selected={this.state.userConcent}
-                                                color="#662397"
+                                                color="#20004A"
                                             />
-                                            <Text style={{color: "#662397", marginLeft: 8}}> I agree to the terms of this offer</Text>
+                                            <Text style={{color: "#20004A", marginLeft: 8}}> I agree to the terms of this offer</Text>
                                         </View>
                                         <View style={{display: "flex", flexDirection: "row", justifyContent: "space-between", flex: 3, marginTop: 5}}>
-                                            <TouchableOpacity style={{backgroundColor: "white", padding: 10, marginLeft: "5%", flex: 0.45, textAlign: "center", borderColor: "#662397", borderRadius: 10}} onPress={this.handleClose}>
-                                                <Text style={{color: "#662397", textAlign: "center", fontSize: 15}}>CANCEL</Text>
+                                            <TouchableOpacity style={{...customstyles.filterContainer, flexDirection: "column", backgroundColor: "white", padding: 10, marginLeft: "5%", flex: 0.45, textAlign: "center", borderColor: "#20004A", borderRadius: 10}} onPress={this.handleClose}>
+                                                <Text style={{color: "#20004A", textAlign: "center", fontSize: 15}}>CANCEL</Text>
                                             </TouchableOpacity>
-                                            <TouchableOpacity style={{backgroundColor: "#662397", padding: 10, marginRight: "5%", flex: 0.45, textAlign: "center", borderColor: "white", borderWidth: 2, borderRadius: 10}} onPress={this.submitOffer}>
+                                            <TouchableOpacity style={{backgroundColor: "#20004A", padding: 10, marginRight: "5%", flex: 0.45, textAlign: "center", borderColor: "white", borderWidth: 2, borderRadius: 10}} onPress={this.submitOffer}>
                                                 <Text style={{color: "white", textAlign: "center", fontSize: 15}}>SUBMIT</Text>
                                             </TouchableOpacity>
                                         </View>
@@ -1434,7 +1477,7 @@ const styles = StyleSheet.create({
         paddingTop: 20,
         flex: 1,
         width: "100%",
-        backgroundColor: "#20004A"
+        backgroundColor: "white"
         // paddingTop: StatusBar.currentHeight,
     },
     innerView: {

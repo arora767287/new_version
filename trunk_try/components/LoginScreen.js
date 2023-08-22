@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
+
 class LoginScreen extends Component {
     constructor(props) {
         super(props);
@@ -19,8 +20,59 @@ class LoginScreen extends Component {
             password_err: '',
             api_resp: '',
             isLoading: false,
+            listDocs: []
         };
     }
+
+    async getDocs(userId, folderId){
+        let data = {
+            user_id: userId,
+            folder_id: folderId,
+            api_url: 'getFileList'
+        }
+        try{
+            const result = await commonPost(data)
+            if ((result.status != 0)) {
+                console.log("DocumentsNewStatus", result);
+                for(let i = 0; i<result.data.length; i++){
+                    var currDoc = result.data[i]
+                    var currList = this.state.listDocs
+                    currList.push(currDoc)
+                    this.setState({listDocs: currList})
+                    console.log("Current New ID", folderId)
+                    console.log(currList)
+                }
+
+            }
+        }
+        catch(error){
+            throw error;
+        }
+    }
+
+    getFolders(user_id){
+        console.log("Running Folders")
+        let data = {
+            id: user_id,
+            api_url: 'getFolderName'
+        }
+        console.log("This User ID: ", user_id)
+        const newResponse = commonPost(data)
+        .then(resp => {
+            console.log("resp.data current");
+            console.log(resp);
+            if(resp.data != null){
+                for(let i = 0; i< resp.data.length; i++){
+                    var currId = resp.data[i].id;
+                    console.log("Calling Docs")
+                    this.getDocs(user_id, currId);
+                }
+            }
+        }).catch((error) => {
+            throw error;
+        })
+    }
+
 
     reactivateAccount(user_id) {
         //Call API to reactivate account (set status to 1, and call activateMMuser function)
@@ -55,7 +107,12 @@ class LoginScreen extends Component {
 
     movePage(userDetails) {
         AsyncStorage.setItem('userInfo', JSON.stringify(userDetails));
-        //this.props.navigation.navigate('ProfileScreen');
+        console.log("Curr User ID: ", userDetails.id);
+        this.getFolders(userDetails.id);
+        setTimeout(() => {
+            var jsonForm = {"listDocs": this.state.listDocs };
+            AsyncStorage.setItem('allDocs', JSON.stringify(jsonForm));
+        }, 1000)
         this.props.navigation.push('MyTabs', { userData: userDetails, user_id: userDetails.id });
         this.setState({
             email: '',

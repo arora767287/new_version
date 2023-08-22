@@ -41,7 +41,7 @@ class Signup extends Component {
         password_err: '',
         conf_pass_err: '',
         img_err: '',
-        currentlocation: '',
+        currentlocation: 1,
         terms:false,
         termscon:false,
         termsconval:1,
@@ -421,10 +421,10 @@ class Signup extends Component {
             lname: this.state.lname,
             email: this.state.reg_email,
             country_code: this.state.isdValue,
-            paypal_email: this.state.paypal_reg_email,
+            paypal_email: this.state.reg_email,
             phone: this.state.phone,
             nationality: this.state.nationality_code,
-            currentlocation: this.state.currLocationValue,
+            currentlocation: 1,
             password: this.state.password,
             faceimage: "data:image/png;base64," + this.state.img,
             coupon: this.state.coupon,
@@ -481,7 +481,8 @@ class Signup extends Component {
                     }, 5000);
                 }
                 else {
-                    Alert.alert(message);
+                    this.props.navigation.navigate('Slideshow');
+                    /*
                     this.setState({
                         api_resp: message,
                         isLoading: false,
@@ -494,12 +495,13 @@ class Signup extends Component {
                     setTimeout(() => {
                         this.props.navigation.navigate('HomeScreen');
                     }, 5000);
+                    */
                 }
             }) .catch((error) => {
-                console.log("error")
+                console.log(error);
                 Alert.alert(
                     'Try again',
-                    'Did you configure your Face ID properly? One or more parameters have been filled incorrectly.',
+                    'Did you fill all of the parameters in correctly? Please check and try again.',
                     [
                         { text: 'OK', onPress: () => {} },
                     ]
@@ -518,7 +520,7 @@ class Signup extends Component {
                 <SafeAreaView style={styles.scrollArea}>
                     <ScrollView style={styles.innerView}>
                         <View style={styles.logincontainer}>
-                            <View style={{paddingVertical: 10, display: "flex", flexDirection: "row", justifyContent: "space-around", marginBottom: 10}}>
+                            <View style={{paddingVertical: 10, display: "flex", flexDirection: "row", justifyContent: "space-around", marginTop: 20, marginBottom: 10}}>
                                 <TouchableOpacity onPress={() => this.props.navigation.goBack()} style={[customstyles.btnWhitecircle, { width: 36, height: 36, alignSelf: "center"}]}>
                                     <Ionicons name="md-chevron-back-outline" size={24} color="#663792" />
                                 </TouchableOpacity>
@@ -653,7 +655,6 @@ class Signup extends Component {
                                 />
                             */}
                             <View>
-                                {/*
                                 <TextInput
                                     value={this.state.phone}
                                     keyboardType={'numeric'}
@@ -667,7 +668,6 @@ class Signup extends Component {
                                     this.state.phone_err.length > 0 &&
                                     <Text style={customstyles.alertdanger}>{this.state.phone_err}</Text>
                                 }
-                            */}
                             </View>
                                 {/*
                                 <Dropdown
@@ -726,14 +726,7 @@ class Signup extends Component {
                                 }
                                
                             </View>
-                            <TextInput
-                                value={this.state.coupon}
-                                onChangeText={(coupon) => this.setState({ coupon })}
-                                placeholder={'Enter Referral Code (if you have one)'}
-                                style={customstyles.input}
-                                placeholderTextColor="#aaa"
-                            />
-                            <Dropdown
+                            {/*<Dropdown
                                 style={[styles.dropdown, {borderColor: '#fff', borderWidth: 2, marginBottom: 10}]}
                                 placeholderStyle={styles.placeholderStyle}
                                 selectedTextStyle={styles.selectedTextStyle}
@@ -758,12 +751,19 @@ class Signup extends Component {
                                     })
                                 }}
                                 />
+                                <TextInput
+                                value={this.state.coupon}
+                                onChangeText={(coupon) => this.setState({ coupon })}
+                                placeholder={'Enter Referral Code (if you have one)'}
+                                style={[customstyles.input]}
+                                placeholderTextColor="#aaa"
+                            />
                             {
                                 this.state.currentlocation_err.length > 0 &&
                                 <Text style={customstyles.alertdanger}>{this.state.currentlocation_err}</Text>
                             }
-                            {
-                            this.state.currLocationValue == 1 &&
+                        */}
+                            
                             <View>
                                 <TextInput
                                     value={this.state.paypal_reg_email}
@@ -772,10 +772,11 @@ class Signup extends Component {
                                     style={customstyles.input}
                                     autoCapitalize='none'
                                     placeholderTextColor="#aaa"
+                                    editable={this.state.currLocationValue == 1}
                                 />
                                
                             </View>
-                            }
+                        
                             {/*
                            <View style={{ flexDirection: "column", alignItems: "center" }}>
                                 <TouchableHighlight onPress={() => this.pickImage()}>
@@ -829,7 +830,7 @@ class Signup extends Component {
                                     }}
                                 >
                                     <Text style={styles.buttonText}>
-                                        {this.state.isLoading ? "SENDING..." : "SUBMIT"}
+                                        {this.state.isLoading ? "LOGGING IN..." : "SUBMIT"}
                                     </Text>
                                     {this.state.isLoading && <Loader />}
                                 </View>

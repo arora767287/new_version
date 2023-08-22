@@ -18,7 +18,12 @@ import DocumentPicker from "react-native-document-picker";
 import DocumentScanner from 'react-native-document-scanner-plugin'
 import { SYSTEM_BRIGHTNESS } from 'expo-permissions';
 import { ListObjectsRequest } from '@aws-sdk/client-s3';
-
+import RNBackgroundDownloader from 'react-native-background-downloader';
+import RNFetchBlob from "rn-fetch-blob";
+import RNFS from "react-native-fs";
+import { offerDetails } from './functions 2';
+import * as Progress from 'react-native-progress';
+import mergeImages from 'merge-images'
 
 const SLIDER_WIDTH = Dimensions.get('window').width - 40;
 const SLIDER_HEIGHT = Math.round(SLIDER_WIDTH * 3 / 4) - 50;
@@ -32,17 +37,19 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
     const [allDocs, setListAllDocs] = useState([]);
     const [thisURI, setThisURI] = useState("");
     const [scannedImage, setScannedImage] = useState();
+    const [progArr, setProgArr] = useState([]);
     let scanner = useRef(null);
     const ref = React.useRef(null);
     const renderItem = React.useCallback(({ item, index }) => (
         index == activeIndex + 1 || index == activeIndex || index == activeIndex - 1 ?
-            <TouchableOpacity key={index} style={{...customstyles.checkboxlist, ...customstyles.mb5}} onPress={() => getfile(item.path)}>
+            <TouchableOpacity key={index} style={{...customstyles.checkboxlist, ...customstyles.mb5}} onPress={() => getfile(item.path, true)}>
                 <Text style={{...customstyles.mr10,}}>{item.document_title}</Text>
                 <View key={item.id} style={{...customstyles.upright,...customstyles.mr5, ...{marginTop: 8,}}}>
                     <TouchableOpacity style={{ ...customstyles.uprightDelete }} onPress={() => deleteUserFile(item.id, userId, folder_id)} >
-                        <Ionicons name="close-outline" size={24} color="white" />
+                        <Ionicons name="close-outline" size={24} color="#20004A" />
                     </TouchableOpacity>
                 </View>
+                <Progress.Bar progress={progArr[index]} width={100} animationType= "spring" color="#00ADF0" unfilledColor="cbb8d9" borderColor="white" borderWidth={3} alignSelf="center" />
             </TouchableOpacity> :
             <View>
             </View>
@@ -65,10 +72,13 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
     const [isCropping, setisCropping] = useState(true);
     const [visible, setvisible] = useState(false);
     const [visible1, setvisible1] = useState(false);
+    const [downloaded, setDownloaded] = useState([]);
         const [checkdelstatus, setcheckdelstatus] = useState(false);
     const [checkcatstatus, setcheckcatstatus] = useState(false);
     const [filename, setFilename] = useState('');
     const [reload, setReload] = useState(false);
+    var fileDict = {};
+    var trueDict = {};
 
     const currImage = require("../assets/Images/new_background.jpg");
 
@@ -80,19 +90,20 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
             let currUser = userData.id;
             let folderId = folder_id;
             let folderName = folder_name ? folder_name : '';
+
             if(active){
                 setTimeout(() => {
                     setDataisLoaded(false);
                     setReload(false);
-                }, 500);
+                }, 250);
                 setTimeout(() => {
-                    setUserId(currUser);
-                    setFolderId(folderId);
-                    setFolderName(folderName);
-                    getDocs(currUser, folderId);
-                    getDocNames();
-                    allDocIds();
-                    }, 1500);
+                setUserId(currUser);
+                setFolderId(folderId);
+                setFolderName(folderName);
+                getDocs(currUser, folderId);
+                getDocNames();
+                allDocIds();
+                }, 500);
             }
         }).catch((error) => {
             throw error;
@@ -103,7 +114,7 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
     let renderDropdown = () => {
             return(
                 <View>
-                    <Text style={{ ...customstyles.h5, ...customstyles.mb5}}>Category</Text>
+                    <Text style={{ ...customstyles.h5, ...customstyles.mb5, color: "#20004A"}}>Category</Text>
                     <View style={[styles.container, {borderColor: "grey", borderWidth: 2, marginBottom: 10, borderRadius: 10}]}>
                         <Dropdown
                         style={[styles.dropdown, {borderColor: 'white', borderWidth: 2 }]}
@@ -168,6 +179,44 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
             } else {
                 console.log("DocumentsStatus", result);
                 setDocuments(result.data);
+
+                let lostTasks = await RNBackgroundDownloader.checkForExistingDownloads();
+                allTaskIds = [] 
+                for(let task of lostTasks){
+                    allTaskIds.push(task.id);
+                }
+                for(let i = 0; i< result.data.length; i++){
+                    const f2 = result.data[i].path.split("/");
+                    const dotSplit = f2[f2.length-1].split(".");
+                    const fileEnding = dotSplit[dotSplit.length - 1];
+                    var fileName = f2[f2.length - 1]
+                    fileName += "." + fileEnding;
+                    console.log("Downloading file to: ",  `${RNBackgroundDownloader.directories.documents}/${fileName}`)
+                    if(!allTaskIds.includes(`${RNBackgroundDownloader.directories.documents}/${fileName}`)){
+                        let task = RNBackgroundDownloader.download({
+                            id: base64image.name + "." + fileEnding,
+                            url: result.data[i].path,
+                            destination: `${RNBackgroundDownloader.directories.documents}/${fileName}`
+                          }).begin((expectedBytes) => {
+                            console.log(`Going to download ${expectedBytes} bytes!`);
+                          }).progress((percent) => {
+                            console.log(`Downloaded: ${percent * 100}%`);
+                          }).done(() => {
+                            downloaded.push(result.data[i].fileName);
+                            console.log('Download is done!');
+
+                          }).error((error) => {
+                            console.log('Download canceled due to error: ', error);
+                        });
+                        console.log("DocumentsStatusNew", result.data);
+                    } else {
+                        result.data[i].prog = 100;
+                        console.log("DocumentsStatusNew", result.data);
+                    }
+
+                    //trueDict[result.data[i].path] = true;
+                    //fileDict[result.data[i].path] = getfile(result.data[i].path, false);
+                }
                 setReload(true)
             }
             console.log("AllDocuments: ", result.data)
@@ -207,6 +256,7 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
                 //DANGER, HARDCODED VALUES
                 for(let i = 1; i < 8; i++) {
                     getRecList(i).then((listOptions) => {
+                        console.log("List Options: ", listOptions);
                         listOptions.data.map((dataOption) => {
                             listAll.push({label: dataOption.doc_name, value: dataOption.id})
                         });
@@ -215,7 +265,7 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
                     })
                 }
                 setDataisLoaded(true);
-            }, 1000);
+            }, 500);
         }
         catch(error){
             //(error);
@@ -257,30 +307,30 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
         const { scannedImages } = await DocumentScanner.scanDocument()
   
         // get back an array with scanned image file paths
-        if (scannedImages.length > 0) {
-          // set the img src, so we can view the first scanned image
-          setScannedImage(scannedImages[scannedImages.length - 1])
-          FileSystem.readAsStringAsync(scannedImages[scannedImages.length - 1], {"encoding": 'base64'})
-          .then(res =>{
-            var newName = res.substring(0, 10);
-            var fullJSON = {}
-            fullJSON["uri"] = `data:image/jpg;base64,${res}`
-            fullJSON["type"] = "image/png"
-            fullJSON["name"] = newName
-            setbase64image(fullJSON);
-            
-            //console.log(`data:image/jpg;base64,${res}`);
-          }).catch((error) => {
-            throw error;
-        })
+        if(scannedImages.length > 0){
+
+            setScannedImage(scannedImages[scannedImages.length - 1])
+            console.log("Scanned ", scannedImages[scannedImages.length - 1])
+            FileSystem.readAsStringAsync(scannedImages[scannedImages.length - 1], {"encoding": 'base64'})
+            .then(res =>{
+              var newName = res.substring(0, 10);
+              console.log("Current Name", newName)
+              var fullJSON = {}
+              fullJSON["uri"] = `data:image/jpg;base64,${res}`
+              fullJSON["type"] = "image/png"
+              fullJSON["name"] = "Scanned Image Input"
+              setbase64image(fullJSON);
+              setResponse("Document Scanned");
+            }).catch((error) => {
+                throw error;
+            })
         }
-     
-      }
+    }
     let pickImage = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         //(permissionResult, "permissionTrue");
         if (permissionResult.granted === false) {
-            alert("Permission to access camera roll is required!");
+            alert("Permission to access camera roll is required! Please go to the Settings app and modify your permissions for the Identity Wallet app to enable access to Photos.");
             return;
         } else {
             try {
@@ -291,6 +341,8 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
                 setTimeout(() => {
                     setbase64image(res);
                     setFilename(res.name)
+                    setResponse("Document Selected");
+                    console.log("Res Name: ", res.name)
                 }, 1000);
               } catch (err) {
                 if (DocumentPicker.isCancel(err)) {
@@ -311,6 +363,9 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
         let folder_id = folderId;
         let base_64 = '';
         base_64 = base64image;
+        if(base_64.name == "Scanned Image Input"){
+            base_64.name = doc_title + ".png";
+        }
         if ((base_64 == '')) {
             setFieldErr('Please Upload a Document');
             setTimeout(() => {
@@ -380,7 +435,12 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
     }
     let submitform = (catstatus) => {
         let user_id = userId;
-        let doc_title = docTitle + " (" + docCategory + ")";
+        let doc_title = ""
+        if(docCategory != ""){
+            doc_title = docTitle + " (" + docCategory + ")";
+        } else {
+            doc_title = docTitle;
+        }
         let folder_id = folderId;
 
         let formData = new FormData();
@@ -388,15 +448,25 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
         var currDoc = {
             uri:base64image.uri,
             type:base64image.type,
-            name:base64image.name + ".png"
+            name:base64image.name
         };
+        var base_64 = base64image;
+        var currName = base_64.name;
+        currName = currName.replace(/ /g,"_");
+        console.log("Curr Final name", currName)
+        base_64.name = currName;
+        setFilename(base_64.name)
+        setbase64image(base_64);
+
         formData.append('document', currDoc);
         formData.append('user_id',userId);
         formData.append('folder_id',folderId);
         formData.append('doc_title',doc_title);
-        formData.append('filename',base64image.name + ".png");
+        formData.append('filename',base_64.name);
         formData.append('doc_cat_id',docCategoryValue);
         formData.append('catstatus',catstatus);
+        console.log("Curr FileName", base64image.name);
+        setResponse("Document uploading (you don't have to wait, don't worry!)...");
         //setDataisLoaded(false);
        var resp = uploaddoc(formData)
             .then(resp => {
@@ -435,20 +505,161 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
 
     //View Document File
     
-    let getfile = async (url) => {
-        setTimeout(() => {
-            setDataisLoaded(false);
-        }, 1000);
+    let getfile = async (url, openFile) => {
         const f2 = url.split("/");
         const dotSplit = f2[f2.length-1].split(".");
         const fileEnding = dotSplit[dotSplit.length - 1];
         //(fileEnding)
         //(typeof(fileEnding));
-        var fileName = f2[f2.length - 1];
-        if(fileEnding != "pdf" && fileEnding != "jpeg" && fileEnding != "jpg" && fileEnding != "png"){
-            fileName += ".png";
+        var fileName = f2[f2.length - 1]
+        if(!downloaded.includes(fileName)){
+            downloaded.push(fileName);
+            Alert.alert(
+                'Downloading File',
+                'We have prepared this file for download. Come back in a minute or two again.',
+                [
+                    {
+                        text: 'Cancel',
+                        onPress: () => {},
+                        style: 'cancel',
+                    },
+                    { text: 'OK', onPress: () => {} },
+                ]
+            );
+
+        } 
+        else {
+            setTimeout(() => {
+                setDataisLoaded(false);
+            }, 10);
+            console.log("curr File Name", fileName);
+            fileName += "." + fileEnding;
+    
+            try{
+                let lostTasks = await RNBackgroundDownloader.checkForExistingDownloads();
+                for(let task of lostTasks){
+                    allTaskIds.push(task.id);
+                }
+                FileViewer.open(`${RNBackgroundDownloader.directories.documents}/${fileName}`, {showOpenWithDialog: true}).then(() => {
+                    //("Opened file");
+                    currDate = new Date();
+                    console.log("Download opened")
+                    console.log(currDate.toLocaleTimeString());
+                    setDataisLoaded(true);
+                })
+            }
+            catch(error){
+                throw error;
+            }
         }
-        const localFile = `${FileSystem.documentDirectory}${fileName}`;
+
+        /*const localFile = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+
+        const options = {
+            fromUrl: url,
+            toFile: localFile,
+        };
+        RNFS.downloadFile(options).promise.then(() => FileViewer.open(localFile))
+            .then(() => {
+                // success
+            })
+        .catch((error) => {
+            // error
+        });*/
+        /*
+        console.log("File Dict");
+        console.log(fileDict);
+        if(openFile && trueDict.has(url)){
+            FileViewer.open(fileDict[url], {showOpenWithDialog: true}).then(() => {
+                //("Opened file");
+                currDate = new Date();
+                console.log("Download opened")
+                console.log(currDate.toLocaleTimeString());
+                setDataisLoaded(true);
+            }).catch((error) => {
+                throw error;
+            })
+        } else {
+            //const localFile = `${FileSystem.documentDirectory}${fileName}`;
+            currDate = new Date();
+            console.log("Download Created")
+            console.log(currDate.toLocaleTimeString());
+            //let dirs = RNFetchBlob.fs.dirs;
+            RNFetchBlob
+            .config({
+                // response data will be saved to this path if it has access right.
+                IOSBackgroundTask: true,
+                fileCache: true,
+                appendExt: fileExt
+                //path : dirs.DocumentDir + `/${fileName}`
+            })
+            .fetch('GET', url, {
+            })
+            .then((res) => {
+                // the path should be dirs.DocumentDir + 'path-to-file.anything'
+                console.log('The file saved to ', res.path())
+                currDate = new Date();
+                console.log("Download downloaded")
+                console.log(currDate.toLocaleTimeString());
+                //('Finished downloading to ', uri);
+                if(openFile && !fileDict.has(url)){
+                    FileViewer.open(res.path(), {showOpenWithDialog: true}).then(() => {
+                        //("Opened file");
+                        currDate = new Date();
+                        console.log("Download opened")
+                        console.log(currDate.toLocaleTimeString());
+                        setDataisLoaded(true);
+                    }).catch((error) => {
+                        throw error;
+                    })
+                } else { //Just load the file, it hasn't been clicked yet
+                    //Put in a queue of files for this particular folder to retrieve
+                    return res.path(); //puts the path in the JSON file 
+                }
+            })
+        }*/
+
+
+        /*
+        const finalDest = `${RNBackgroundDownloader.directories.documents}/${fileName}`;
+        let task = RNBackgroundDownloader.download({
+            id: 'file123',
+            url: url,
+            destination: `${RNBackgroundDownloader.directories.documents}/${fileName}`
+        }).begin((expectedBytes) => {
+            console.log(`Going to download ${expectedBytes} bytes!`);
+        }).progress((percent) => {
+            console.log(`Downloaded: ${percent * 100}%`);
+        }).done(() => {
+            currDate = new Date();
+            console.log("Download downloaded")
+            console.log(currDate.toLocaleTimeString());
+            //('Finished downloading to ', uri);
+            FileViewer.open(finalDest, {showOpenWithDialog: true}).then(() => {
+                //("Opened file");
+                currDate = new Date();
+                console.log("Download opened")
+                console.log(currDate.toLocaleTimeString());
+                setDataisLoaded(true);
+            }).catch((error) => {
+                throw error;
+            })
+            console.log('Download is done!');
+        }).error((error) => {
+            console.log('Download canceled due to error: ', error);
+        });
+
+        // Pause the task
+        //task.pause();
+
+        // Resume after pause
+        //task.resume();
+
+        // Cancel the task
+        //task.stop();
+        */
+
+        /*
         const options = {
           fromUrl: url,
           toFile: localFile,
@@ -459,22 +670,35 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
             options.fromUrl,
             options.toFile,
             {});
+        
+        var currDate = new Date();
+        console.log("Download created")
+        console.log(currDate.toLocaleTimeString());
         try{
-            const { uri } = await downloadResumable.downloadAsync();
-            //('Finished downloading to ', uri);
-            FileViewer.open(uri, {showOpenWithDialog: true}).then(() => {
-                //("Opened file");
-                setTimeout(() => {
-                    setDataisLoaded(true);
-                }, 1000);
-            }).catch((error) => {
-                throw error;
-            })
+            setTimeout(() => {
+                downloadResumable.downloadAsync().then((uri) => {
+                    currDate = new Date();
+                    console.log("Download downloaded")
+                    console.log(currDate.toLocaleTimeString());
+                    //('Finished downloading to ', uri);
+                    FileViewer.open(uri, {showOpenWithDialog: true}).then(() => {
+                        //("Opened file");
+                        currDate = new Date();
+                        console.log("Download opened")
+                        console.log(currDate.toLocaleTimeString());
+                        setDataisLoaded(true);
+                    }).catch((error) => {
+                        throw error;
+                    })
+                });
+            }, 2000)
+            //const { uri } = await downloadResumable.downloadAsync();
         }
         catch(error){
             //(error);
             throw error;
         }
+        */
        }
     
 
@@ -558,14 +782,14 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
             <SafeAreaView style={styles.scrollArea}>
                 <View style={styles.innerView}>
                     <View >
-                        <View style={{ ...customstyles.whitebox, ...customstyles.mx10, ...customstyles.my15, ...customstyles.p15, borderRadius: 10, borderColor: "grey", borderWidth: 2}}>
+                        <View style={{ ...customstyles.whitebox, ...customstyles.mx10, ...customstyles.my15, ...customstyles.p15, borderRadius: 10, borderColor: "white", borderWidth: 2}}>
                             {
                                 documents.length > 0 ?
                                 <View>
                                     <Text style={{alignSelf: "flex-start", color: "#662397", fontSize: 15}}>All Documents</Text>
                                 </View>:
                                 <View>
-                                    <Text style={{textAlign: "center", color: "grey", fontSize: 10}}>No Documents Yet</Text>
+                                    <Text style={{...customstyles.filterContainer, padding: 20, borderRadius: 16, textAlign: "center", fontSize: 10}}>No Documents Yet</Text>
                                 </View>
 
                             }
@@ -622,11 +846,11 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
                             </View>
 
                             <View>
-                                <Text style={{ ...customstyles.h5, ...customstyles.mb5}}>Title</Text>
+                                <Text style={{ ...customstyles.h5, ...customstyles.mb5, color:"white"}}>Title</Text>
                                 <TextInput
                                     placeholder={'Document Name'}
                                     onChangeText={(docTitle) => setDocTitle(docTitle)}
-                                    style={[customstyles.inputtheme, {borderColor: "grey", borderRadius: 10}]}
+                                    style={[customstyles.inputtheme, {...customstyles.filterContainer, flexDirection: "column", borderRadius: 10, borderColor: "white",  color: "white"}]}
                                 />
                                 {
 
@@ -636,7 +860,7 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
                                     renderDropdown()
                                 }
                             </View>
-                            <TouchableOpacity onPress={submitDocument} style={[customstyles.mb10, {borderColor: "#20004A"}]}>
+                            <TouchableOpacity onPress={submitDocument} style={[customstyles.mb10, {borderColor: "white", borderRadius: 10}]}>
                                 <Text style={[customstyles.btnThemexs, {color: "#20004A"}]}>SUBMIT DOCUMENT</Text>
                             </TouchableOpacity>
                         </View>
@@ -650,7 +874,7 @@ function ShowDocs({ user_id, folder_id, folder_name, navigation, route, active, 
 const styles = StyleSheet.create({
     scrollArea: {
         flex: 1,
-        width: "100%"
+        width: "100%",
         // paddingTop: StatusBar.currentHeight,
     },
     innerView: {
@@ -669,7 +893,7 @@ const styles = StyleSheet.create({
       },
       label: {
         position: 'absolute',
-        backgroundColor: 'white',
+        backgroundColor: '#20004A',
         left: 22,
         top: 8,
         zIndex: 999,
@@ -678,15 +902,16 @@ const styles = StyleSheet.create({
       },
       placeholderStyle: {
         fontSize: 16,
-        color: "white",
+        color: "#20004A",
       },
       selectedTextStyle: {
         fontSize: 16,
-        color: "#662397",
+        color: "#20004A",
       },
       iconStyle: {
         width: 20,
         height: 20,
+        color: "#20004A"
       },
       inputSearchStyle: {
         height: 40,

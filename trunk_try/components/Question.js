@@ -1,11 +1,11 @@
 import React, { Component   } from 'react';
-import { Alert, Button, TextInput, View, StyleSheet, Text, TouchableOpacity, SafeAreaView, ScrollView, StatusBar, Image, Pressable, ImageBackground, Dimensions } from 'react-native';
+import { Alert, Linking, Button, TextInput, View, StyleSheet, Text, TouchableOpacity, SafeAreaView, ScrollView, StatusBar, Image, Pressable, ImageBackground, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Loader from './Loader';
 import RadioButtonRN from 'radio-buttons-react-native-expo';
 import Checkbox from 'expo-checkbox';
 import { customstyles } from "../customstyle";
-import { commonPost, getRandomQuestion, getCategories, getQuestionListing, getQuestionsAnswered, getCategoryKeycode } from "../components/functions.js";
+import { commonPost, commonFilePost, getRandomQuestion, getCategories, getQuestionListing, getQuestionsAnswered, getCategoryKeycode, uploaddoc} from "../components/functions.js";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import Background from './Background';
@@ -26,7 +26,6 @@ const [isFocus, setIsFocus] = React.useState(false);
 */
 
 class Question extends Component {
-
     state = {
         user_submission_id: '',
         DataisLoaded: false,
@@ -55,12 +54,15 @@ class Question extends Component {
         deltaTime: '',
         secondQuestion: '',
         secondQuestionOptions: [],
-        userInfo: ''
+        linkAccounts: [],
+        userInfo: '',
+        viewingInfo: false,
+        base64image: '',
+        otherAns: ""
     }
 
     componentDidMount() {
         try{
-            
             if(this.props.route.params != undefined){
                 this.setState({ user_submission_id: this.props.route.params.user_id });
                 this.setState({
@@ -69,7 +71,7 @@ class Question extends Component {
                 this.getRandomQuestion2(this.props.route.params.user_id);
                 this.getIndQuestionInfo(this.props.route.params.user_id);
             } else {
-                console.log("UNDEFINED!");
+                //console.log("UNDEFINED!");
                 this.setState({
                     DataisLoaded: false
                 })
@@ -80,16 +82,119 @@ class Question extends Component {
             .then((value) => {
                 let userData = JSON.parse(value);
                 this.setState({userInfo: userData});
-            });
+            }).catch((error) => {
+                //console.log("This error: ", error);
+                throw error;
+            })
         }
         catch(error){
-            console.log(error);
+            //console.log(error);
             throw error;
         }
     }
 
+    async pickImage(item) {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        //(permissionResult, "permissionTrue");
+        if (permissionResult.granted === false) {
+            alert("Permission to access camera roll is required! Please go to the Settings app and modify your permissions for the Identity Wallet app to enable access to Photos.");
+            return;
+        } else {
+            try {
+                const res = await DocumentPicker.pickSingle({
+                   type: [DocumentPicker.types.allFiles],
+                });
+                //("URI Foun"d");
+                console.log("Image Found: ", res);
+                setTimeout(() => {
+                    this.setState({
+                        base64image: res
+                    })
+                    this.submitDocument(item)
+                }, 1000);
+              } catch (err) {
+                if (DocumentPicker.isCancel(err)) {
+                  //("error -----", err);
+                } else {
+                  throw err;
+                }
+              }
+        }
+
+    };
+    /*
+        let user_id = this.state.user_submission_id;
+        let doc_title = `${item.name}Upload`;
+        let folder_id = 8;
+        let data = {
+            user_id: this.state.user_submission_id,
+            folder_id: folder_id,
+            doc_cat_id: item.doc_cat,
+            api_url: 'checkCategory'
+        }
+        ////(data);
+        var resp = commonFilePost(data)
+            .then(resp => {
+    */
+
+    submitDocument(item) {
+        var user_id = this.state.user_submission_id;
+        var doc_title = `${item.name}Upload`;
+        var folder_id = 8;
+        var formData = new FormData();
+        console.log("Base64: ", this.state.base64image)
+        var currDoc = {
+            uri:this.state.base64image.uri,
+            type:this.state.base64image.type,
+            name:this.state.base64image.name
+        };
+        var base_64 = this.state.base64image;
+        var currName = base_64.name;
+        currName = currName.replace(/ /g,"_");
+        console.log("Curr Final name", currName)
+        base_64.name = currName;
+        setTimeout(() => {
+                this.setState({
+                base64image: base_64
+            })
+        }, 10);
+
+        formData.append('document', currDoc);
+        formData.append('user_id',user_id);
+        formData.append('folder_id',folder_id);
+        formData.append('doc_title',doc_title);
+        formData.append('filename',base_64.name);
+        formData.append('doc_cat_id',item.doc_cat);
+        formData.append('catstatus',1);
+        console.log("Curr FileName", this.state.base64image.name);
+        //setDataisLoaded(false);
+        var resp = uploaddoc(formData)
+        .then(resp => {
+            let result = resp;
+            console.log("Current Response: ", resp);
+            let status = resp.status;
+            let message = result.message;
+            console.log("Result status", status);
+            Alert.alert(
+                `Congratulations!`,
+                `Your ${item.name} data has been successfully uploaded. You can update it here or on the Info Store whenever you like. We will soon make this completely automated!`,
+                [
+                    {text: "Cancel", onPress: () => {} },
+                    {text: "OK", onPress: () => {}},
+                ]
+            );
+        })
+        .catch((error) => {
+            console.log("Current Error: ", error);
+            throw error;
+        })
+    }
+
+
+
+
     onMoveCategory = () => {
-        console.log("Clicked");
+        //console.log("Clicked");
         this.props.navigation.navigate("Category", {userDetails: this.state.userInfo, fromPlace: "offers"});
     }
 
@@ -98,21 +203,22 @@ class Question extends Component {
         try{
             let listQuestions = [];
             var categoryInfo = [];
-            let resp = getQuestionListing()
+            let resp = getQuestionListing(user_id)
               .then(resp => {
+                  //console.log("Curr Question Output: ", resp);
                   let result = resp.data;
                   listQuestions = result;
-                  console.log("all qs", listQuestions.length);
+                  //console.log("all qs", listQuestions.length);
                   let categories = [];
                   let newResp = getCategoryKeycode()
                     .then(newResp => {
                       let result = newResp.data;
                       categories = result
-                      console.log(categories);
+                      //console.log("Categories ", categories);
                       let listGetAnswers = [];
                       let finalResp = getQuestionsAnswered(user_id)
                       .then(finalResp => {
-                        console.log(finalResp.data)
+                        //console.log(finalResp.data)
                         let result = finalResp.data;
                         listGetAnswers = result
                         var listAnswered = [];
@@ -127,6 +233,7 @@ class Question extends Component {
                           }
                         }
                         categoryInfo.push({"category_name": "Total", "category_id": 0, "countAnswered": 0, "countTotal": 0, "fraction": 1})
+                        //console.log("Full List Questions: ", listQuestions);
                         for(let i = 0; i<listQuestions.length; i++){
                           var currQuestion = listQuestions[i].id
                           var answered = listAnswered.includes(currQuestion);
@@ -148,16 +255,16 @@ class Question extends Component {
                           }
                         }
                         for(let i = 0; i<categoryInfo.length; i++){
-                            console.log("FractionCount:", categoryInfo[i].fraction)
+                            //console.log("FractionCount:", categoryInfo[i].fraction)
                             if(categoryInfo[i].countTotal == 0){
                                 categoryInfo[i].fraction = 0;
                             }
                             else{
                                 categoryInfo[i].fraction = categoryInfo[i].countAnswered/categoryInfo[i].countTotal;
                             }
-                          console.log("CategoryCount:", categoryInfo[i].countAnswered);
-                          console.log("CategoryTotal:", categoryInfo[i].countTotal);
-                          console.log("FractionCount:", categoryInfo[i].fraction);
+                          //console.log("CategoryCount:", categoryInfo[i].countAnswered);
+                          //console.log("CategoryTotal:", categoryInfo[i].countTotal);
+                          //console.log("FractionCount:", categoryInfo[i].fraction);
                         }
                         for(let i = 0; i<categoryInfo.length - 1; i++){
                             categoryInfo[categoryInfo.length - 1].countAnswered += categoryInfo[i].countAnswered;
@@ -166,7 +273,7 @@ class Question extends Component {
                         categoryInfo[categoryInfo.length - 1].fraction = categoryInfo[categoryInfo.length - 1].countAnswered/categoryInfo[categoryInfo.length - 1].countTotal;
                         result = categoryInfo;
                         var finalArray = []
-                        console.log(categoryInfo);
+                        //console.log(categoryInfo);
                         for(let i = 0; i< result.length - 1; i++){
                             finalArray.push(result[i])
                         }
@@ -176,23 +283,42 @@ class Question extends Component {
                         } else {
                             this.setState({changedQuestion: true});
                         }
-                        console.log("Result:", result);
+                        var google_logo = require("../assets/Images/google_logo.png")
+                        var instagram_logo =  require("../assets/Images/instagram_logo.png")
+                        var uber_logo = require("../assets/Images/uber_logo.png")
+                        var linkedin_logo =  require("../assets/Images/linkedin_logo.png")
+                        //console.log("Result:", result);
+                        this.setState({
+                            google_logo: require("../assets/Images/google_logo.png"),
+                            instagram_logo: require("../assets/Images/instagram_logo.png"),
+                            uber_logo: require("../assets/Images/uber_logo.png"),
+                            linkedin_logo: require("../assets/Images/linkedin_logo.png")
+                        })
                         this.setState({
                             listCategories: finalArray,
                             numQuestions: result[result.length - 1].countTotal,
                             numAnswered: result[result.length - 1].countAnswered,
                             percentValue: result[result.length - 1].countAnswered/result[result.length - 1].countTotal,
                             DataisLoaded: true,
-                            user_submission_id: user_id
+                            user_submission_id: user_id,
+                            linkAccounts: [
+                                {"name": "Google", "desc": "Earn $10 instantly by connecting your Google Data to Identity Wallet!", "inst": "1. Login to Google after clicking 'Let's Go!' below \n 2. Click `CREATE NEW EXPORT` \n 3. Then, wait until you obtain an export in your email, and upload it below!","mode": 1, "img": this.state.google_logo, "doc_cat": 41, "url": "https://takeout.google.com/settings/takeout"},
+                                {"name": "Instagram", "desc": "Earn $10 instantly by connecting your Instagram Data to Identity Wallet!", "inst": "1. Login to Instagram after clicking 'Let's Go!' below \n 2. Select `JSON` \n 3. Proceed to request the download \n 4. You'll receive it in your email, after which you can upload it here. ", "mode": 2, "url": "https://www.instagram.com/download/request", "img": this.state.instagram_logo, "doc_cat": 42},
+                                {"name": "Uber", "desc" : "Earn $10 instantly by connecting your Uber Data to Identity Wallet!", "inst": "1. Login to Uber after clicking 'Let's Go!' below \n 2. Click `Request Your Data` \n 3. Upload the file you receive in your email below: ", "mode" : 2, "url": "https://auth.uber.com/v2/?breeze_local_zone=phx2&next_url=https%3A%2F%2Fmyprivacy.uber.com%2Fprivacy%2Fexploreyourdata%2Fdownload&state=BgTKjZe7EuE5yexqVzW1VJYVEaTlIBavZHhw6YNqY-k%3D", "img": this.state.uber_logo, "doc_cat": 43},
+                                {"name": "LinkedIn", "desc" : "Earn $10 instantly by connecting your LinkedIn Data to Identity Wallet!", "inst" : "1. Login to LinkedIn after clicking 'Let's Go!' below \n 2. Click `Download Larger Data Archive` \n 3. `Request Archive` and upload the file you receive after 24 hours in your email below: ", "mode" : 2, "url": "https://www.linkedin.com/mypreferences/d/download-my-data", "img": this.state.linkedin_logo, "doc_cat": 44},
+                            ]
                         });
-                        console.log("Percent", result[result.length - 1].countAnswered/result[result.length - 1].countTotal);
+                        console.log("linkAccounts: ", this.state.linkAccounts.length);
                       }).catch((error) => {
+                        console.log("New Error: ", error);
                         throw error;
                       })
                     }).catch((error) => {
+                        console.log("New Other Error: ", error);
                         throw error;
                     })
                   }).catch((error) => {
+                    console.log("New Final Error: ", error);
                     throw error;
                   })
                   return resp;
@@ -210,11 +336,12 @@ class Question extends Component {
         .then(resp => {
             let result = resp.data;
             this.setState({
-                listCategories: result
+                listCategories: result,
+
             })
-            
         })
         .catch((error) => {
+            console.log("Category Error", error);
             throw error;
         })
     }
@@ -222,11 +349,11 @@ class Question extends Component {
         if(this.state.Questions == '' && this.state.secondQuestion == ''){
             let resp = getRandomQuestion(userId)
             .then(resp => {
-                console.log("UserQuestion: ", userId);
-                console.log("QuestionResp: ", resp);
+                //console.log("UserQuestion: ", userId);
+                //console.log("QuestionResp: ", resp);
                 let result = resp.data;
                 let options = result[0].question_options;
-                console.log(result);
+                //console.log(result);
                 setTimeout(() => {
                     this.setState({
                         DataisLoaded: false,
@@ -245,7 +372,8 @@ class Question extends Component {
                         { text: 'OK', onPress: () => {} },
                     ]
                 );
-                console.log(error);
+                this.componentDidMount();
+                console.log("Get Questions Error: ", error);
                 throw error;
             })
             let secondResp = getRandomQuestion(userId)
@@ -260,6 +388,7 @@ class Question extends Component {
                     })
                 }, 10);
             }).catch((error) => {
+                console.log("Other Question Error: ", error);
                 throw error;
             })
         } else {
@@ -275,7 +404,7 @@ class Question extends Component {
             .then((otherResp) => {
                 let result = otherResp.data;
                 let options = result[0].question_options;
-                console.log(result);
+                //console.log(result);
                 setTimeout(() => {
                     this.setState({
                         DataisLoaded: true,
@@ -285,6 +414,7 @@ class Question extends Component {
                 }, 10);
                 //this.getIndQuestionInfo(this.state.user_submission_id);
             }).catch((error) => {
+                console.log("Question Issue Error", error);
                 throw error;
             })
         }
@@ -328,11 +458,11 @@ class Question extends Component {
     // Close
 
     // Submit Answers 
-    submitAnswer = (qus_id) => {
+    submitAnswer = (qus_id, qus_mode, other_ans) => {
         let ques_id = qus_id;
         let userId = this.state.user_submission_id;
         let is_interested = '1';
-
+        let ques_mode = qus_mode;
         let base_64 = this.state.image_base64;
         let final_ans = '';
 
@@ -349,6 +479,7 @@ class Question extends Component {
             } else if (this.state.radio_btn) {
                 ////console.log('Radio');
                 final_ans = this.state.radio_btn; //Radio button option
+                other_ans = this.state.otherAns
             } 
             else if(this.state.label){
                 final_ans = this.state.label;
@@ -356,6 +487,7 @@ class Question extends Component {
             else if(this.state.selectedCheckboxes.toString()){
                 ////console.log('Checbox');
                 final_ans = this.state.selectedCheckboxes.toString();
+                other_ans = this.state.otherAns;
             }
             else{
                 final_ans = '';
@@ -372,14 +504,14 @@ class Question extends Component {
         })
 
         ////console.log(final_ans);
-        if(final_ans == ''){
+        if(final_ans == '' && other_ans == ''){
             this.qusSkip(qus_id);
         }
         else if ((base_64)) {
             this.getDocument(ques_id, userId, is_interested, final_ans);
         } 
         else {
-            this.getUserAnswer(ques_id, userId, is_interested, final_ans);
+            this.getUserAnswer(ques_id, userId, is_interested, final_ans, other_ans);
         }
     }
     //   Close
@@ -414,34 +546,6 @@ class Question extends Component {
 
     };
      */
-    pickImage = async () => {
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permissionResult.granted === false) {
-            alert("Permission to access camera roll is required!");
-            return;
-        } else {
-            try {
-                const res = await DocumentPicker.pickSingle({
-                   type: [DocumentPicker.types.allFiles],
-                });
-                console.log("URI Found");
-                  FileSystem.readAsStringAsync(res.uri, {"encoding": 'base64'}).then(res =>{
-                    this.setState({
-                        image_base64: `data:image/jpg;base64,${res}`
-                    });
-                }).catch((error) => {
-                    throw error;
-                })
-              } catch (err) {
-                if (DocumentPicker.isCancel(err)) {
-                  console.log("error -----", err);
-                } else {
-                  throw err;
-                }
-              }
-        }
-
-    };
     // Close
 
     newFunction = async () => {
@@ -456,6 +560,7 @@ class Question extends Component {
                     DataisLoaded: true
                 })
             }).catch((error) => {
+                console.log("Random New Function error: ", error);
                 throw error;
             })
         }).catch((error) => {
@@ -465,27 +570,28 @@ class Question extends Component {
     }
 
     // Submitting Asn
-    getUserAnswer = (ques_id, userId, is_interested, final_ans) => {
+    getUserAnswer = (ques_id, userId, is_interested, final_ans, other_ans) => {
 
         let data = {
             user_id: userId,
             question_id: ques_id,
             is_interested: is_interested,
             answer: final_ans,
+            other_option_answer: other_ans, 
             api_url: 'getUserAnswer'
         }
         this.setState({
             DataisLoaded: false,
         });
-
+        //console.log("Data Submitted: ", data);
         var resp = commonPost(data)
             .then(resp => {
                 let result = resp.data;
-                let message = result.message;
                 let status = result.status;
-                console.log("Question output: " + result);
+                //console.log("Question output: " + result);
 
                 if ((status != 1)) {
+                    let message = result.message;
                     this.setState({
                         api_resp: message
                     });
@@ -500,19 +606,18 @@ class Question extends Component {
                         text_input: '',
                         number_text: '',
                         selectedCheckboxes: [],
+                        otherAns: "",
                          radio_btn: ''
                     });
                 }, 10);
 
                 setTimeout(() => {
                     this.getRandomQuestion2(userId);
-                    this.setState({
-                        DataisLoaded: false,
-                    });
                 }, 10);
 
             })
             .catch((error) => {
+                console.log("Submission Error: ", error);
                 throw error;
             })
 
@@ -529,7 +634,7 @@ class Question extends Component {
         this.setState({
             DataisLoaded: false,
         })
-        console.log("Options Rendered: ", newData);
+        //console.log("Options Rendered: ", newData);
         return newData;
     }
 
@@ -579,12 +684,24 @@ class Question extends Component {
                 }, 10);
             })
             .catch((error) => {
+                console.log("Final Submit Error: ", error);
                 throw error;
             })
 
     }
     setFocus = (amount) =>{
         this.setState({isFocus: amount})
+    }
+    uploadInfo = (item) => {
+        Alert.alert(
+            `Instructions to download your ${item.name} data`,
+            `${item.inst}`,
+            [
+                {text: "Cancel", onPress: () => {} },
+                {text: "Let's Go!", onPress: () => {Linking.openURL(`${item.url}`)} },
+                {text: 'Upload Now (I have my data)', onPress: () => {this.pickImage(item)} },
+            ]
+        );
     }
     renderDropdown = () => {
         
@@ -650,70 +767,96 @@ class Question extends Component {
         if (!this.state.clicked) {
 
             return (
-                <SafeAreaView style={{backgroundColor: "#20004A"}}>
+                <SafeAreaView style={{backgroundColor: "white"}}>
                     <View style={{ ...customstyles.header, ...customstyles.px15 }}>
-                        <Text style={{...customstyles.titleText, fontSize: 35, color: "white", fontWeight: 'bold', flex: 1, marginLeft: 15}}>Question Store</Text>
+                        <Text style={{...customstyles.titleText, fontSize: 35, color: "#20004A", fontWeight: 'bold', flex: 1, marginLeft: 15}}>Question Store</Text>
                     </View>
                     <ScrollView style={{...styles.innerView, borderRadius: 10}}>
-                        <View style={{...styles.container, justifyContent: "space-around"}}>
+                        <View style={{...styles.container, justifyContent: "space-around", paddingBottom: windowHeight*0.15}}>
 
-                            <View style={{ ...customstyles.filterContainer, marginBottom: 20, padding: 15, ...customstyles.mt30, backgroundColor: "#662397", opacity: 1, borderRadius:20, borderColor: "transparent"}}>
-                                <Text style={{ ...customstyles.textCenter, fontSize: 15, color: "white"}}>Answer questions about your identity to make more data available for offers in the marketplace!</Text>
+                            <View style={{ ...customstyles.filterContainer, marginBottom: 20, padding: 15, ...customstyles.mt30, ...customstyles.filterContainerOutline, flexDirection: "column"}}>
+                                <Text style={{ ...customstyles.textCenter, fontSize: 15, color: "#20004A"}}>Answer questions about your identity to make more data available for offers in the marketplace!</Text>
 
                                 <TouchableOpacity onPress={this.startQuiz}
                                     style={{ ...customstyles.px30, ...customstyles.my20 }}>
-                                    <Text style={{...customstyles.btnThemexs, color: "white", borderColor: "white"}}>START</Text>
+                                    <Text style={{...customstyles.btnThemexs, color: "#20004A", borderColor: "#20004A"}}>START</Text>
                                 </TouchableOpacity>
                             </View>
 
-                            <View style={{...customstyles.filterContainer, display: "flex", flexDirection: "column", justifyContent: "space-around", backgroundColor: "#662397", opacity: 1}}>
-                                <Text style={{color: "#662397", fontSize: 20, paddingLeft: 15, padding: 5, fontWeight: "bold", color: "white"}}>Data Progress</Text>
+                            <View style={{...customstyles.filterContainer, display: "flex", flexDirection: "column", justifyContent: "space-around", ...customstyles.filterContainerOutline}}>
+                                <Text style={{color: "#662397", fontSize: 20, paddingLeft: 15, padding: 5, fontWeight: "bold", color: "#20004A"}}>Data Progress</Text>
                                 <View style={{display: "flex", flexDirection: "row", justifyContent: "space-around"}}>
                                     <View style={{ backgroundColor: "transparent", padding: 5, borderRadius:20, borderColor: "transparent", width: "48%", justifyContent: "space-around"}}>
                                         <View style={{display: "flex", flexDirection: "row", justifyContent: "center"}}>
                                             <View style={{display: "flex", flexDirection: "column"}}>
-                                                <View style={{padding: 5, flexDirection: "column", justifyContent: "center", alignSelf: "center", backgroundColor: "#cbb8d9", borderColor: "#662397", borderRadius:10, borderWidth: 2, alignItems: "center", width: 100, height: 100}}>
-                                                    <Text style={{fontSize: 35, justifyContent: "center", alignSelf: "center", fontWeight: "bold", alignSelf: "center", color: "#662397"}}>{this.state.numAnswered}</Text>
+                                                <View style={{padding: 5, flexDirection: "column", justifyContent: "center", alignSelf: "center", borderWidth: 2, alignItems: "center", width: 100, height: 100, ...customstyles.filterContainerOutline, borderRadius: 16}}>
+                                                    <Text style={{fontSize: 35, justifyContent: "center", alignSelf: "center", fontWeight: "bold", alignSelf: "center", color: "#20004A"}}>{this.state.numAnswered}</Text>
                                                     {/*<Text style={{fontSize: 10, justifyContent: "center", alignSelf: "center", flex: 0.25, textAlign: "center"}}>of</Text>
                                                     <Text style={{fontSize: 15, justifyContent: "center", alignSelf: "center", flex: 0.375, fontWeight: "bold"}}>50</Text>*/}
                                                 </View>
-                                                <Text style={{color: "#662397", fontSize: 15, marginTop: 10, color: "white"}}>Questions Answered</Text>
+                                                <Text style={{color: "#662397", fontSize: 15, marginTop: 10, color: "#20004A"}}>Questions Answered</Text>
                                             </View>
                                         </View>
                                     </View>
                                     
                                     <View style={{ backgroundColor: "transparent", padding: 15, backgroundColor: "transparent", opacity: 0.75, borderRadius:20, borderColor: "transparent", width: "48%"}}>
                                         <View style={{flexDirection: 'column', justifyContent: "center", alignSelf: 'center', alignItems: "center"}}>
-                                            <Progress.Circle size={120} indeterminateAnimationDuration={2000} animated={this.state.changedQuestion} showsText style={[customstyles.progressChart]} progress={this.state.percentValue} thickness={10} fill= "#662397" color="white" borderWidth={1}>
+                                            <Progress.Circle size={120} indeterminateAnimationDuration={2000} animated={this.state.changedQuestion} showsText style={[customstyles.progressChart]} progress={this.state.percentValue} thickness={10} fill= "#20004A" color="#20004A" borderWidth={1}>
                                             </Progress.Circle>                                          
                                         </View>
                                     </View>
                                 </View>
-                                <View style={{display: "flex", flexDirection: "column"}}>
-                                    <View style={{display: "flex", flexDirection: "row", padding: 10, justifyContent: "space-around"}}>
-                                        <Text style={{color: "#662397", fontSize: 20, fontWeight: "bold", color: "white"}}>Data Categories</Text>
-                                        <TouchableOpacity onPress={this.onMoveCategory} style={{alignSelf: "flex-end"}}>
-                                            <Text style={{ ...customstyles.underline, color: "#662397", alignSelf: "flex-end", color: "white"}}>Configure Questions</Text>
+                                <View style={{display: "flex", flexDirection: "column", ...customstyles.filterContainerOutline}}>
+                                    <View style={{display: "flex", flexDirection: "row", padding: 10}}>
+                                        {/*<Text style={{color: "#662397", fontSize: 20, fontWeight: "bold", color: "white"}}>Data Categories</Text>*/}
+                                        <TouchableOpacity onPress={() => {this.setState({viewingInfo: !this.state.viewingInfo})}} style={{alignSelf: "flex-end"}}>
+                                            {!this.state.viewingInfo ?
+                                                <Text style={{ ...customstyles.underline, color: "#662397", alignSelf: "flex-start", color: "#20004A", fontSize: 15}}>Hide Category Breakdown</Text>:
+                                                <Text style={{ ...customstyles.underline, color: "#662397", alignSelf: "flex-start", color: "#20004A", fontSize: 15}}>Show Category Breakdown</Text>
+                                            }
                                         </TouchableOpacity>
                                     </View>
-                                    <View style={{paddingBottom: windowHeight*0.15}}>
-                                        {
-                                            this.state.listCategories.length > 0 &&
-                                            this.state.listCategories.map((item, index) => (
-                                                <TouchableOpacity style={styles.tranBackground}>
-                                                    <View style={styles.textView}>
-                                                        <Text style={{...styles.titleText, marginBottom: 5}}>{item.category_name}</Text>
-                                                        <View style={{display: "flex", flexDirection: "row", marginLeft: "auto", marginRight: 15, justifyContent: "center", alignSelf: "space-around"}}>
-                                                            <Progress.Bar progress={item.fraction} width={200} animationType= "spring" color="#662397" unfilledColor="#cbb8d9" borderColor="white" borderWidth={1.5} alignSelf="center" animated/>
+                                    <ScrollView style={{flex: 1, padding: 5, borderColor: "transparent", borderWidth: 2, borderRadius: 5, maxHeight: 150}}>
+                                    {!this.state.viewingInfo ? 
+                                        <View style={{paddingBottom: windowHeight*0.01}}>
+                                            {
+                                                this.state.listCategories.length > 0 &&
+                                                this.state.listCategories.map((item, index) => (
+                                                    <TouchableOpacity style={styles.tranBackground}>
+                                                        <View style={styles.textView}>
+                                                            <Text style={{...styles.titleText, marginBottom: 5}}>{item.category_name}</Text>
+                                                            <View style={{display: "flex", flexDirection: "row", marginLeft: "auto", marginRight: 15, justifyContent: "center", alignSelf: "space-around"}}>
+                                                                <Progress.Bar progress={item.fraction} width={200} animationType= "spring" color="#662397" unfilledColor="#cbb8d9" borderColor="white" borderWidth={1.5} alignSelf="center" animated/>
+                                                            </View>
                                                         </View>
-                                                    </View>
-                                                    <Text style={{color: "#663297", fontWeight: 'normal', alignSelf: "flex-end", fontSize: 20}}>{Math.round(item.fraction*100)}%</Text>
-                                                </TouchableOpacity>
-                                            ))
-                                        }
-                                    </View>
+                                                        <Text style={{color: "#663297", fontWeight: 'normal', alignSelf: "flex-end", fontSize: 20}}>{Math.round(item.fraction*100)}%</Text>
+                                                    </TouchableOpacity>
+                                                ))
+                                            }
+                                        </View> : 
+                                        <View>
+                                        </View>
+                                    }
+                                    </ScrollView>
                                 </View>
                             </View>
+                            {
+                                this.state.linkAccounts.length > 0 && this.state.linkAccounts.map((item, i) => (
+                                    <View key = {i} style={{ ...customstyles.filterContainer, padding: 15, marginTop: 20, flexDirection: "row", justifyContent: "center", alignItems: "center"}}>
+                                        <View>
+                                            <Image source={item.img} style={{width: 60, height: 60}}/>
+                                        </View>
+                                        <View style={{alignSelf: "flex-end", width: "80%"}}>
+                                            <Text style={{ ...customstyles.textCenter, fontSize: 15, color: "#20004A"}}>{item.desc}</Text>
+
+                                            <TouchableOpacity onPress={() => {this.uploadInfo(item)}}
+                                                style={{ ...customstyles.px30, marginVertical: 10}}>
+                                                <Text style={{...customstyles.btnThemexs, color: "#20004A", borderColor: "#20004A"}}>UPLOAD</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ))
+                            }
                         </View>
                     </ScrollView>
                 </SafeAreaView >);
@@ -728,7 +871,7 @@ class Question extends Component {
                 </View>
                 <ScrollView style={{...styles.innerView}}>
                     <View style={{...styles.container, justifyContent: "center", alignSelf: "center", width: "100%"}}>
-                        <View style={{ ...customstyles.filterContainer, marginBottom: 20, padding: 15, ...customstyles.mt30, backgroundColor: "#662397", opacity: 1, borderRadius:20, borderColor: "transparent"}}>
+                        <View style={{ ...customstyles.filterContainer, marginBottom: 10, padding: 15, ...customstyles.mt30, backgroundColor: "#662397", opacity: 1, borderRadius:20, borderColor: "transparent"}}>
                             {
                                 true ?
 
@@ -749,6 +892,7 @@ class Question extends Component {
                                                         style={{ ...customstyles.inputtheme, color: "white", borderColor: "white", borderWidth: 1, borderRadius: 10}}
                                                     />
                                                 </View>
+
                                             }
 
                                             {
@@ -758,8 +902,15 @@ class Question extends Component {
                                                     {
                                                         this.renderDropdown()
                                                     }
+                                                    <TextInput
+                                                        placeholder={'Other (if above not applicable)'}
+                                                        placeholderTextColor={'grey'}
+                                                        onChangeText={(text_input) => this.setState({ number_text: text_input })}
+                                                        style={{ ...customstyles.inputtheme, color: "white", borderColor: "white", borderWidth: 1, borderRadius: 10, marginTop: -10}}
+                                                    />
 
                                                 </View>
+
                                             }
 
                                             {
@@ -777,8 +928,15 @@ class Question extends Component {
                                                                 />
                                                                 <Text style={{marginLeft: 30, color: "#662397" }}>{checkBoxItem.option}</Text>
                                                             </View>
+
                                                         ))
                                                     }
+                                                    <TextInput
+                                                        placeholder={'Other (if above not applicable)'}
+                                                        placeholderTextColor={'grey'}
+                                                        onChangeText={(text_input) => this.setState({ number_text: text_input })}
+                                                        style={{ ...customstyles.inputtheme, color: "white", borderColor: "white", borderWidth: 1, borderRadius: 10, marginTop: -10}}
+                                                    />
                                                 </View>
                                             }
 
@@ -801,7 +959,7 @@ class Question extends Component {
                                                         placeholder={'Numeric Value'}
                                                         placeholderTextColor={'grey'}
                                                         keyboardType={'numeric'}
-                                                        onChangeText={(number_text) => this.setState({ number_text })}
+                                                        onChangeText={(number_text) => this.setState({ number_text: number_text })}
                                                         style={{ ...customstyles.inputtheme, color: "white", borderColor: "white", borderWidth: 1, borderRadius: 10}}
                                                     />
                                                 </View>
@@ -829,7 +987,7 @@ class Question extends Component {
                                                       <View  key={k}>
                                                            <TouchableOpacity onPress={() => this.getanswer(checkBoxItem.option,checkBoxItem.id)}  style={{marginBottom:10}}>
                                                           
-                                                <Image source={{uri: checkBoxItem.path}} style={(this.state.selected == checkBoxItem.id) ? styles.boxSelected : styles.boxStyle}></Image>
+                                                    <Image source={{uri: checkBoxItem.path}} style={(this.state.selected == checkBoxItem.id) ? styles.boxSelected : styles.boxStyle}></Image>
                                                          </TouchableOpacity>
                                                       </View>
                                                       
@@ -842,7 +1000,7 @@ class Question extends Component {
 
                                             {/* Skip & Submit button */}
                                             <View style={{...customstyles.mt10, display: "flex", flexDirection: "row", justifyContent: "space-around"}}>
-                                                <TouchableOpacity onPress={() => this.submitAnswer(item.id)} style={{...customstyles.px30, backgroundColor: "white", borderRadius: 16}}>
+                                                <TouchableOpacity onPress={() => this.submitAnswer(item.id, item.question_mode, this.state.otherAns)} style={{...customstyles.px30, backgroundColor: "white", borderRadius: 16}}>
                                                     <Text style={{...customstyles.btnThemesmall, backgroundColor: "white", color: "#662397"}}>SUBMIT</Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity onPress={() => this.qusSkip(item.id)} style={{...customstyles.px30, backgroundColor: "#662397", borderColor: "white", borderWidth: 1, borderRadius: 16}}>

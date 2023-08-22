@@ -30,6 +30,7 @@ import Uncomplete_Question from "./components/Uncomplete_Question";
 import Transactionplist from "./components/Transactionplist";
 import Cardtransactionlist from "./components/Cardtransactionlist";
 import Couponllist from "./components/Couponllist";
+import Slideshow from "./components/Slideshow";
 export default function App() {
   const Stack = createNativeStackNavigator();
   
@@ -163,6 +164,12 @@ export default function App() {
     <Stack.Screen
           name="Couponllist"
           component={Couponllist}
+          options={{ headerShown: false }}
+        />
+
+<Stack.Screen
+          name="Slideshow"
+          component={Slideshow}
           options={{ headerShown: false }}
         />
 

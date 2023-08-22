@@ -26,25 +26,25 @@ function OfferInfo({ navigation, route, comp_name, offer_title, data_share_price
         <View style={{width: "100%"}}>
             <ScrollView>
                 <View style={{display: "flex", flexDirection: "column", width: "95%", alignSelf: "center", alignItems: "center", backgroundColor: "transparent", flex: 10}}>
-                    <View style={{...customstyles.filterContainer, display: "flex", flexDirection: "column", borderColor: "#662397", borderWidth: 0, borderRadius: 16, padding: 10, margin: 10, opacity: 1, width: "95%"}}>
+                    <View style={{...customstyles.filterContainer, display: "flex", flexDirection: "column", borderColor: "#20004A", borderWidth: 0, borderRadius: 16, padding: 10, margin: 10, opacity: 1, width: "95%"}}>
                         <View style={{display: "flex", flexDirection: "row", marginBottom: 5, alignItems: "center", justifyContent: "space-between"}}>
                             <View style={{display: "flex", flexDirection: "column"}}>
-                                <Text style={{...customstyles.h5, fontSize: 20, fontWeight: "bold", marginBottom: 2, marginRight: 20, color: "#662397"}}>
+                                <Text style={{...customstyles.h5, fontSize: 20, fontWeight: "bold", marginBottom: 2, marginRight: 20, color: "#20004A"}}>
                                     {offer_title}
                                 </Text>
                                 <View style={{display: "flex", justifyContent: "flex-start", alignSelf: "flex-start", alignItems: "center", flexDirection: "row"}}>
-                                    <Image source={mtransfer} style={{width: 20, height: 20, padding: 10, alignSelf: "center", borderColor: "#662397", borderRadius: 10, borderWidth: 2}}></Image>
-                                    <Text style={{...customstyles.h5, fontSize: 10, fontWeight: "bold", marginBottom: 2, marginRight: 20, color: "#662397", marginLeft: 4, alignSelf: "center"}}>{comp_name}</Text>
+                                    <Image source={mtransfer} style={{width: 20, height: 20, padding: 10, alignSelf: "center", borderColor: "#20004A", borderRadius: 10, borderWidth: 2}}></Image>
+                                    <Text style={{...customstyles.h5, fontSize: 10, fontWeight: "bold", marginBottom: 2, marginRight: 20, color: "#20004A", marginLeft: 4, alignSelf: "center"}}>{comp_name}</Text>
                                 </View>
                             </View>
-                            <View style={{borderColor: "#662397", backgroundColor: "white", borderWidth: 2, alignSelf: "center", justifyContent: "center", alignItems: "center", width: 50, height: 50, borderRadius: 10}}>
+                            <View style={{borderColor: "#20004A", backgroundColor: "white", borderWidth: 2, alignSelf: "center", justifyContent: "center", alignItems: "center", width: 50, height: 50, borderRadius: 10}}>
                                 <Text style={{...customstyles.h5, fontSize: 15, fontWeight: "normal"}}>
                                     ${data_share_price + open_to_contact_price}
                                 </Text>
                             </View>
                         </View>
                         <View style={{display: "flex", flexDirection: "column"}}>
-                            <Text style={{...customstyles.h5, fontSize: 10, fontWeight: "normal", color: "#662397"}}>
+                            <Text style={{...customstyles.h5, fontSize: 10, fontWeight: "normal", color: "#20004A"}}>
                                 {offer_description}
                             </Text>
                         </View>
@@ -110,7 +110,7 @@ const otherStyles = StyleSheet.create({
         height: SLIDER_HEIGHT,
         borderRadius:10,
         borderWidth: 1, 
-        borderColor: "#662397"
+        borderColor: "#20004A"
     },
     imageSmallStyle:{
         width: 10,

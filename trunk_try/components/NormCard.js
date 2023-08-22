@@ -50,8 +50,7 @@ function NormCard({navigation, route, color_first, text_color, color_darker_seco
             );
         };
     }
-    if(four_array.answerd!=""){
-    if(four_array.answerd==1){
+    if(four_array.answerd==1 || four_array.answerd == 0){
         color_first = '#198754';   
         text_color = "white"
     }
@@ -59,15 +58,9 @@ function NormCard({navigation, route, color_first, text_color, color_darker_seco
         color_first = '#ebeab7';   
         text_color = "#662397"
     }
-    /*
-    console.log("This Output");
-    console.log( () => {
-        onTap(four_array.id,four_array.answerd)
-    });*/
-   }
     if(touchableOn || four_array.answerd==1){
         return(
-            <View style={{...customstyles.filterContainer, display: "flex", flexDirection: "column", backgroundColor: color_first, width: width, height: height, borderRadius: 16, padding: 10, margin: 10, opacity: 1, padding: 10}} onPress={() => onTap(four_array.id,four_array.answerd)}>
+            <View style={{...customstyles.filterContainer, display: "flex", flexDirection: "column", backgroundColor: color_first, width: width, height: height, borderRadius: 16, padding: 5, margin: 10, opacity: 1, padding: 10, paddingBottom:10}} onPress={() => onTap(four_array.id,four_array.answerd)}>
                 <View style={{display: "flex", flexDirection: "row", justifyContent: "space-between", marginBottom: 5}}>
                     {
                     four_array.offer_type == '1' ?
@@ -99,7 +92,7 @@ function NormCard({navigation, route, color_first, text_color, color_darker_seco
         )
     } else {
         return(
-            <TouchableOpacity style={{...customstyles.filterContainer, display: "flex", flexDirection: "column", backgroundColor: color_first, width: width, height: height, borderRadius: 16, padding: 10, margin: 10, opacity: 1, padding: 10}} onPress={() => onTap(four_array.id,four_array.answerd)}>
+            <TouchableOpacity style={{...customstyles.filterContainer, display: "flex", flexDirection: "column", backgroundColor: color_first, width: width, height: height, borderRadius: 16, padding: 5, margin: 10, opacity: 1, padding: 10, paddingBottom: 10}} onPress={() => onTap(four_array.id,four_array.answerd)}>
                 <View style={{display: "flex", flexDirection: "row", justifyContent: "space-between", marginBottom: 5}}>
                     {
                     four_array.offer_type == '1' ?

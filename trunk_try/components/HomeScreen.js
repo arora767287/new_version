@@ -5,28 +5,158 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { customstyles } from "../customstyle";
 TouchableOpacity.defaultProps = { activeOpacity: 0.8 };
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import RNBackgroundDownloader from 'react-native-background-downloader';
+import RNFetchBlob from "rn-fetch-blob";
+import { commonPost } from "./functions.js";
 // 23.09.2020
 function HomeScreen({ navigation }) {
 
   const [userInfo, setUserInfo] = React.useState([]);
   const [userDetails, setUserDetails] = React.useState([]);
+  const [listDocs, setListDocs] = React.useState([]);
+  const [displayFolders, setDisplayFolders] = React.useState([]);
+
 
   useEffect(() => {
     checkLogin();
   }, []);
 
 
+  const getFolders = (user_id) => {
+      let data = {
+          id: user_id,
+          api_url: 'getFolderName'
+      }
+      const newResponse = commonPost(data)
+      .then(resp => {
+          console.log("resp.data");
+          console.log(resp.data);
+          if(resp.data != null){
+            for(let i = 0; i< resp.data.length; i++){
+              var currId = resp.data[i].id;
+              getDocs(user_id, currId);
+            }
+          }
+    
+      }).catch((error) => {
+          throw error;
+      })
+  }
+
+  let getDocs = async (userId, folderId) => {
+    let data = {
+        user_id: userId,
+        folder_id: folderId,
+        api_url: 'getFileList'
+    }
+    try{
+        const result = await commonPost(data)
+        if ((result.status != 0)) {
+            console.log("DocumentsStatus", result);
+            for(let i = 0; i<result.data.length; i++){
+              var currDoc = result.data[i]
+              var currList = listDocs
+              currList.push(currDoc)
+              setListDocs(currList)
+              console.log("Current ID", folderId)
+              var fileName = result.data[i].document_title;
+              var fileEnding = result.data[i].path.split(".")[result.data[i].path.split(".").length - 1]
+              fileName += "" + result.data[i].id;
+              if(fileEnding != "pdf" && fileEnding != "jpeg" && fileEnding != "jpg" && fileEnding != "png"){
+                fileName += ".png";
+              }
+              let task = RNBackgroundDownloader.download({
+                id: fileName,
+                url: result.data[i].path,
+                destination: `${RNBackgroundDownloader.directories.documents}/${fileName}`
+              }).begin((expectedBytes) => {
+                console.log(`Going to download ${expectedBytes} bytes!`);
+              }).progress((percent) => {
+                console.log(`Downloaded: ${percent * 100}%`);
+              }).done(() => {
+                console.log('Download is done!');
+              }).error((error) => {
+                console.log('Download canceled due to error: ', error);
+              });
+            }
+        }
+    }
+    catch(error){
+        setTimeout(() => {
+            setFieldErr("Could not load documents, please try again later.")
+        }, 1000)
+        throw error;
+        //(error)
+    }
+}
+
+
+  /*let startDownloads = async (userId) => {
+
+    let getDocs = async (userId, folderId) => {
+      let data = {
+          user_id: userId,
+          folder_id: folder_id,
+          api_url: 'getFileList'
+      }
+      try{
+          const result = await commonPost(data)
+          if ((result.status == 0)) {
+              setDocuments([]);
+              setReload(false)
+          } else {
+              console.log("DocumentsStatus", result);
+              setDocuments(result.data);
+              for(let i = 0; i< result.data.length; i++){
+                  trueDict[result.data[i].path] = true;
+                  fileDict[result.data[i].path] = getfile(result.data[i].path, false);
+              }
+              setReload(true)
+          }
+          console.log("AllDocuments: ", result.data)
+          //("documents"+documents)
+      }
+      catch(error){
+          setTimeout(() => {
+              setFieldErr("Could not load documents, please try again later.")
+          }, 1000)
+          throw error;
+          //(error)
+      }
+  }
+
+
+    let task = RNBackgroundDownloader.download({
+      id: 'file123',
+      url: 'https://link-to-very.large/file.zip',
+      destination: `${RNBackgroundDownloader.directories.documents}/file.zip`
+    }).begin((expectedBytes) => {
+      console.log(`Going to download ${expectedBytes} bytes!`);
+    }).progress((percent) => {
+      console.log(`Downloaded: ${percent * 100}%`);
+    }).done(() => {
+      console.log('Download is done!');
+    }).error((error) => {
+      console.log('Download canceled due to error: ', error);
+    });
+  }
+  */
+
   let checkLogin = async () => {
     const login = await AsyncStorage.getItem('userInfo');
     if (login !== null) {
       setUserInfo(JSON.parse(login));
+      getFolders(JSON.parse(login).id);
+      setTimeout(() => {
+        AsyncStorage.setItem('allDocs', JSON.stringify({listDocs}));
+      }, 1000)
       navigation.navigate('MyTabs', {
-        userDetails: userInfo,
+        userDetails: userInfo
       });
     }
-    else {
+    /*else {
       navigation.navigate('HomeScreen');
-    }
+    }*/
   }
 
   let loginNavigation = () => {

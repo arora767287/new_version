@@ -165,7 +165,7 @@ async function LoginAPI(data) {
 async function commonPost(data) {
   try {
     getAuthState();
-    console.log("Remember Token: ", token);
+    console.log("Remember New Token: ", token);
     setAuthState();
     const response = await fetch(url + data.api_url, {
       method: 'POST',
@@ -514,10 +514,10 @@ let getTitles = async () => {
 
 
 // Question Bank Listing
-let getQuestionListing = async () => {
+let getQuestionListing = async (user_id) => {
   setAuthState();
   try {
-    const response = await fetch(url + 'getQuestionListing', {
+    const response = await fetch(url +`getQuestionListing?user_id=0`, {
       method: 'GET',
       mode: 'cors',
       headers: {
@@ -879,12 +879,68 @@ let getQuestionsAnswered = async (user_id) => {
   }
 }
 
+let linkTokenCreation = async() => {
+  var myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+
+  var raw = JSON.stringify({
+    "client_id": "6486ced0ab8edd001b9f0a55",
+    "secret": "2224d52552490ca8664398faba5cb2",
+    "client_name": "Identity Wallet App",
+    "user": {
+      "client_user_id": "user-id"
+    },
+    "products": [
+      "auth"
+    ],
+    "country_codes": [
+      "US"
+    ],
+    "language": "en"
+    //"webhook": "https://webhook.example.com"
+  });
+
+  var requestOptions = {
+    method: 'POST',
+    headers: myHeaders,
+    body: raw,
+    redirect: 'follow'
+  };
+  fetch("https://sandbox.plaid.com/link/token/create", requestOptions)
+    .then(response => {
+      return response.json();
+    })
+}
+
+let setAccessToken = async (public_token) => {
+  var myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+
+  var raw = JSON.stringify({
+    "client_id": "6486ced0ab8edd001b9f0a55",
+    "secret": "2224d52552490ca8664398faba5cb2",
+    "public_token": public_token
+  });
+
+  var requestOptions = {
+    method: 'POST',
+    headers: myHeaders,
+    body: raw,
+    redirect: 'follow'
+  };
+
+  fetch("https://sandbox.plaid.com/item/public_token/exchange", requestOptions)
+    .then(response => {
+      return response.json()
+  });
+}
+
 let getValuation = async(user_id) => {
   try{
-    getAuthState();
+    //getAuthState();
     var formdata = new FormData();
     formdata.append("user_id", user_id);
-    const response = await fetch("https://devidentitywalletml.nityo.in/" + `regression_agg_output/`,{
+    const response = await fetch("https://devidentitywalletml.nityo.in/custom_valuation/",{
       method: 'POST',
       body: formdata,
       redirect: "follow",
@@ -1035,4 +1091,4 @@ let getFolderPercent = async (user_id) => {
 }*/
   
 // Close
-export { LoginAPI, userDetailById, getCategories, getUserPrefrence, getSelectedPref, getQuestionListing, getRandomQuestion, offerDetails, companyFilter, priceFilter, retriveWallet,transactionlist, activateCard, getCardById, getUserAddress, getEnumerations, commonPost, commonGet,commonGetwihoutktoken,commonGetwithkey, getQuestionsAnswered, getQuestionInfo, getCategoryKeycode, ViewCards, commonGetWithoutToken, getImages, getOneImage, getTitles, getIdTypes, getMobileCountry, getNationalities, getAllFiles, getFolderPercent, getRecList, getValuation, getBalance, commonPostWithoutToken, commonFilePost, uploaddoc, commonPostText, ViewCardsText, eKYCVerify, eKYCStart, couponlist, transactioncardlist, commonGetFace};
+export { LoginAPI, userDetailById, getCategories, getUserPrefrence, getSelectedPref, getQuestionListing, getRandomQuestion, offerDetails, companyFilter, priceFilter, retriveWallet,transactionlist, activateCard, getCardById, getUserAddress, getEnumerations, commonPost, commonGet,commonGetwihoutktoken,commonGetwithkey, getQuestionsAnswered, getQuestionInfo, getCategoryKeycode, ViewCards, commonGetWithoutToken, getImages, getOneImage, getTitles, getIdTypes, getMobileCountry, getNationalities, getAllFiles, getFolderPercent, getRecList, getValuation, getBalance, commonPostWithoutToken, commonFilePost, uploaddoc, commonPostText, ViewCardsText, eKYCVerify, eKYCStart, couponlist, transactioncardlist, commonGetFace, linkTokenCreation, setAccessToken};

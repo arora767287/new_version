@@ -1,18 +1,21 @@
 import React from 'react';
-import { Alert, StyleSheet, View, Button, TouchableOpacity, Text, Image, ImageBackground, ScrollView, Modal} from 'react-native';
+import { Alert, StyleSheet, View, Button, Dimensions, TouchableOpacity, Text, Image, ImageBackground, ScrollView, Modal, SafeAreaView} from 'react-native';
 import { customstyles } from '../customstyle';
 import Icon from 'react-native-ionicons'
 import TranItem from "./TranItem";
-import {getBalance, transactionlist, commonPost} from "./functions.js";
+import {getBalance, transactionlist, commonPost, linkTokenCreation} from "./functions.js";
 import { AntDesign } from '@expo/vector-icons'; 
 import Dialog from "react-native-dialog";
 import SearchBar from "react-native-dynamic-search-bar";
 import Loader from "./Loader";
 import Moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePlaidLink } from 'react-plaid-link';
+import Link from "./Link.js";
 
 function NewWallet({ route, navigation }){
 
+    const [linkToken, setLinkToken] = React.useState(null);
     const [userId, setuserId] = React.useState('');    
     const [userdata, setuserdata] = React.useState('');
     const [errResp, setErrResp] = React.useState('');
@@ -32,6 +35,16 @@ function NewWallet({ route, navigation }){
 
     const [earnamt, setEarnamt] = React.useState(0);
     const [penndingamt, setPenndingamt] = React.useState(0);
+
+    const windowHeight = Dimensions.get("window").height
+    const WIN_HEIGHT = Dimensions.get('window').height - 30;
+    const SLIDER_WIDTH = Dimensions.get('window').width - 40;
+    const SLIDER_HEIGHT = Math.round(SLIDER_WIDTH * 3 / 4) - 50;
+    const screenHeight = Dimensions.get('window').height
+    const ITEM_WIDTH = Math.round(SLIDER_WIDTH);
+    const ITEM_HEIGHT = Math.round(SLIDER_HEIGHT);
+    const IMG_WIDTH = Math.round(ITEM_WIDTH);
+    const IMG_HEIGHT = Math.round(ITEM_HEIGHT)
 
     React.useEffect(() => {
         const value = AsyncStorage.getItem('userInfo')
@@ -93,7 +106,7 @@ function NewWallet({ route, navigation }){
                })
              
                .catch((error) => {
-                   setisLoading(false)
+                   //setisLoading(false)
                    console.log(error)
                })
            } else {
@@ -102,6 +115,10 @@ function NewWallet({ route, navigation }){
                    setTempBalance(res.funds.available.amount);
                })
            }
+           /*var currData = await linkTokenCreation();
+           setTimeout(() => {
+               setLinkToken(currData.link_token);
+           }, 100);*/
            Moment.locale('en');
        });
     }, []);
@@ -402,16 +419,26 @@ function NewWallet({ route, navigation }){
             }
     }
     return (
-        <View style={{flex: 10, backgroundColor: "#20004A"}}>
-        <View style={{flex: 10,marginLeft: 25, marginTop:40, backgroundColor: "#20004A"}}>
-            <Text style={{...customstyles.titleText, fontSize: 35, color: "#663297", fontWeight: 'bold', flex: 1, justifyContent: "space-between", color: "white"}}>My Wallet</Text>
+        <SafeAreaView style={{...styles.scrollArea, height: WIN_HEIGHT, backgroundColor: "white"}}>
+        <View style={{backgroundColor: "white"}}>
+                <View style={{ ...customstyles.header, ...customstyles.px15 }}>
+                    <Text style={{ ...customstyles.titleText, fontSize: 35, color: "#663297", fontWeight: 'bold', flex: 1, marginLeft: 15, marginBottom: 10, color: "#20004A"}}>My Wallet</Text>
+                </View>
             { userdata.current_location==1 &&
-            <View style={{...customstyles.walletBalanceBackground, marginTop: -80, backgroundColor: "#fff", borderColor: "white", borderWidth: 10, opacity: 1}}>
-                <Text style={{...customstyles.walletBalanceText, fontSize:20, color: "white", marginLeft: 15, color: "#662397"}}>Your Data Earnings: </Text>
-                <Text style={{...customstyles.titleText, color: "white", marginLeft: 15,marginRight: 30, fontSize: 24, color: "#662397"}}>$ {earnamt}</Text>
-                <Text style={{...customstyles.walletBalanceText, fontSize:20, color: "white", marginLeft: 15, color: "#662397"}}>Pending Data Earnings: </Text>
-                <Text style={{...customstyles.titleText, color: "white", marginLeft: 15,marginRight: 30, fontSize: 24, color: "#662397"}}>$ {penndingamt}</Text>
-            </View> } 
+            <View style={{...customstyles.filterContainerOutline}}>
+                <View style={{...customstyles.walletBalanceBackground, backgroundColor: "#fff", borderColor: "white", borderWidth: 10, opacity: 1, marginLeft: 20, borderShadow: "#fff"}}>
+                    <Text style={{...customstyles.walletBalanceText, fontSize:20, color: "white", marginLeft: 15, color: "#662397"}}>Your Data Earnings: </Text>
+                    <Text style={{...customstyles.titleText, color: "white", marginLeft: 15,marginRight: 30, fontSize: 24, color: "#662397"}}>$ {earnamt}</Text>
+                    <Text style={{...customstyles.walletBalanceText, fontSize:20, color: "white", marginLeft: 15, color: "#662397"}}>Pending Data Earnings: </Text>
+                    <Text style={{...customstyles.titleText, color: "white", marginLeft: 15,marginRight: 30, fontSize: 24, color: "#662397"}}>$ {penndingamt}</Text>
+                </View> 
+                {
+                    linkToken != null ? 
+                    <Link linkToken={linkToken} /> 
+                    : 
+                    <></>
+                }
+            </View>} 
             { userdata.current_location!=1 &&
             <View style={{...customstyles.walletBalanceBackground}}>
                 <Text style={{...customstyles.walletBalanceText, fontSize:20, color: "white", marginLeft: 15}}>Balance: </Text>
@@ -425,7 +452,7 @@ function NewWallet({ route, navigation }){
                 <Text style={{...customstyles.titleText, fontWeight: 'bold'}}>Actions</Text>
             </View>}
             { userdata.current_location!=1 &&
-            <View flexDirection="row" style={{justifyContent: "center", padding: 2, flex: 3, marginTop: -20}}>
+            <View flexDirection="row" style={{justifyContent: "center", padding: 2}}>
                 <View style={{ width: "45%", marginRight: 10, borderRadius: 16, padding:5}}>
                     <TouchableOpacity style={{ justifyContent: "space-between", flex: 1, flexDirection:"row", backgroundColor:"white", borderRadius:16, marginBottom: 5, borderColor: "#662397", borderWidth: 0, padding: 5}} onPress={retrieveUserWallet}>                        
                         <Text style={{...customstyles.titleText, flex: 0.5, fontSize: 15, padding: 5, justifyContent: "flex-end", alignSelf: "flex-end"}}>View Wallet</Text>
@@ -458,14 +485,14 @@ function NewWallet({ route, navigation }){
             {/*
             Transactions listing section -- faded towards the least recent
             */}
-            <View style={{flex: 1, alignItems: "center", justifyContent: "space-between", flexDirection: "row", marginRight: 20, marginTop: -30}}>
-                <Text style={{...customstyles.titleText, fontWeight: 'bold', color: "white"}}>Recent Transactions</Text>
+            <View style={{alignItems: "center", justifyContent: "space-between", flexDirection: "row", marginLeft: 20, marginTop: 20, width: "90%"}}>
+                <Text style={{...customstyles.titleText, fontWeight: 'bold', color: "#20004A"}}>Recent Transactions</Text>
                 <TouchableOpacity onPress={lookAllTran}>
                     <AntDesign name="rightcircle" size={30} color="#fff" style={{justifyContent: "center"}} />
                 </TouchableOpacity>
             </View>
             { userdata.current_location!=1 ?
-            <View style={{flex: 3, marginLeft: -10}}>
+            <View style={{flex: 3}}>
                 {listTransactions.length>0 ?  
                 <ScrollView style={{padding: 5}}>
                     {
@@ -491,7 +518,7 @@ function NewWallet({ route, navigation }){
                 </View>
                 }
             </View>:
-             <View style={{flex: 3, marginTop: -50}}>
+             <View style={{marginLeft: 20}}>
              {listpTransactions.length>0 ?  
              <ScrollView style={{padding: 5}}>
                  {
@@ -513,11 +540,8 @@ function NewWallet({ route, navigation }){
              </View>}
          </View>
             }
-            <View style={{flex: 0.1}}>
-                
-            </View>
         </View>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -560,6 +584,14 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         marginLeft: "auto",
         marginRight: 15
+    },
+
+    scrollArea: {
+        paddingTop: 20,
+        flex: 1,
+        width: "100%",
+        backgroundColor: "white"
+        // paddingTop: StatusBar.currentHeight,
     }
 });
 

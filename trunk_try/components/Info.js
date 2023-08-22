@@ -20,6 +20,8 @@ const IMG_WIDTH = Math.round(ITEM_WIDTH);
 const IMG_HEIGHT = Math.round(ITEM_HEIGHT)
 import PaginationDot from "react-native-animated-pagination-dot";
 import { SourceSelectionCriteria } from '@aws-sdk/client-s3';
+import { Dropdown } from "react-native-element-dropdown"
+import AntDesign from 'react-native-vector-icons/AntDesign'
 
 function Info({ navigation, route }) {
 
@@ -27,50 +29,61 @@ function Info({ navigation, route }) {
         getListCategories();
     }
 
-    const handleOnChangeText = (text) => {
-        console.log(text);
-        if(text == ""){
+    const handleOnChangeText = (item) => {
+        //console.log(text);
+        /*if(text == ""){
             setTimeout(() => {
+                console.log("Set to all folders", allFolders)
                 setActiveIndex(0);
                 setDisplayFolders(allFolders)
                 setListCategories(allFolders)
-            }, 1000)
-        }
-        else{
-            var listFolders = [];
-            for(let i = 0; i<allFolders.length; i++){
-                if(allFolders[i].folder_name.indexOf(text) == 0){
-                    listFolders.push(allFolders[i])
+
+            }, 500)
+        }*/
+        var text = item.label
+        var listFolders = [];
+        var first = null;
+        for(let i = 0; i<allFolders.length; i++){
+            if(allFolders[i].folder_name.indexOf(text) == 0){
+                listFolders.push(allFolders[i])
+                setLabel(item.label)
+                setValue(item.value);
+                if(first == null){
+                    first = i;
                 }
             }
-            setTimeout(() => {
-                setActiveIndex(0);
-                setDisplayFolders(listFolders);
-            }, 1000)
         }
+        setTimeout(() => {
+            setActiveIndex(0);
+            setDisplayFolders(listFolders);
+        }, 500)
 
       };
     const [count, setCount] = useState(1);
     const [activeIndex, setActiveIndex] = useState(0);
     const [allFolders, setAllFolders] = useState([]);
+    const [allFoldersNames, setAllFoldersNames] = useState([]);
     const [displayFolders, setDisplayFolders] = useState([]);
     const ref = React.useRef(null);
     const [progressAmount, setProgressAmount] = useState(1);
     const [listTags, setListTags] = useState([]);
+    const [isFocus, setIsFocus] = useState(false);
+    const [label, setLabel] = useState("Personal");
+    const [value, setValue] = useState(0);
     const renderDocs = (item, index) => {
         console.log("Item", item);
         return( <ShowDocs key={item.id} user_id={userId} folder_id={item.id} folder_name={item.folder_name} active={true} parentCall={parentCall}/> );
       
     }
-  
-    const renderItem = ({item, index}) => (
+
+    const renderItem = (item, index) => (
         index == activeIndex?
-            <View style={{backgroundColor: "white", display: "flex", borderRadius: 30, borderWidth: 0, borderColor: "#663297"}}>
+            <View style={{backgroundColor: "white", display: "flex", borderWidth: 0, borderColor: "#663297", width: "100%", ...customstyles.filterContainer, flexDirection: "column"}}>
             {
                 <View style={{padding: 10}}>
-                    <LinearGradient colors={['#663792', '#662397', '#662397']} start={{ x: 0.2, y: 0.5 }} end={{ x: 1, y: 1.3 }} style={styles.gradientbtn} >
+                    <LinearGradient colors={['white', 'white', 'white']} start={{ x: 0.2, y: 0.5 }} end={{ x: 1, y: 1.3 }} style={styles.gradientbtn} >
                         <View key={index}>
-                            <Text style={{ ...customstyles.w100, ...customstyles.textCenter, ...customstyles.textwhite, ...customstyles.textmd}}>{item.folder_name} </Text>
+                            <Text style={{ ...customstyles.w100, ...customstyles.textCenter, color: "#20004A", ...customstyles.textmd}}>{item.folder_name} </Text>
                         </View>
                     </LinearGradient>
                     {renderDocs(item, index)}
@@ -80,24 +93,8 @@ function Info({ navigation, route }) {
             <View>
             </View>
     )
-    
 
-    const snapItem = (index) => {
-        setActiveIndex(index);
-        return(
-        <View style={{backgroundColor: "white", display: "flex", borderRadius: 5, borderWidth: 10, borderColor: "#663297"}}>
-        {
-            <View>
-                <LinearGradient colors={['#663792', '#3d418b', '#0a4487']} start={{ x: 0.2, y: 0.5 }} end={{ x: 1, y: 1.3 }} style={styles.gradientbtn} >
-                    <View key={index}>
-                        <Text style={{ ...customstyles.w100, ...customstyles.textCenter, ...customstyles.textwhite, ...customstyles.textmd}}>{displayFolders[index].folder_name} </Text>
-                    </View>
-                </LinearGradient>
-                 <ShowDocs KEY={index} user_id={userId} folder_id={displayFolders[index].id} folder_name={displayFolders[index].folder_name} active={true} functionCall={parentCall()}/> 
-            </View>
-        }
-        </View>)
-    }
+
 
     const [userId, setUserId] = useState('');
     const [folderName, setFolderName] = useState('');
@@ -109,6 +106,7 @@ function Info({ navigation, route }) {
     const [message, setMessage] = useState('');
     const [flag, setFlag] = useState('');
     const [listCategories, setListCategories] = useState('');
+    const [displayNames, setDisplayNames] = useState('');
 
     useEffect(() => {
        
@@ -119,17 +117,22 @@ function Info({ navigation, route }) {
             const newResponse = commonPost(data)
             .then(resp => {
                 console.log("resp.data");
+                console.log(resp.data);
                 if(resp.data != null){
                     setDisplayFolders(resp.data);
                     setAllFolders(resp.data);
+                    var currNames = [];
                     var currListTags = [];
                     for(let i = 0; i<resp.data.length; i++){
                         currListTags.push(i == 0);
+                        currNames.push({label: resp.data[i].folder_name, value: i});
                     }
+                    setAllFoldersNames(currNames);
+                    console.log("All Folders ", currNames)
                     setListCategories(resp.data);
                     setTimeout(() => {
                         setListTags(currListTags);
-                    }, 500)
+                    }, 200)
                 }
             
              
@@ -251,6 +254,7 @@ function Info({ navigation, route }) {
             .then(resp => {
                 console.log(resp);
                 setfoldervisiable(false)
+                setVisible(false);
                 let result = resp;
                 if ((result.status == 2)) {
                     setFlag('2');
@@ -277,7 +281,8 @@ function Info({ navigation, route }) {
                                 setDisplayFolders(resp.data);
                                 setAllFolders(resp.data);
                                 setDataisLoaded(true);
-                            }, 2000)
+                                setActiveIndex(resp.data.length - 1);
+                            }, 1000)
                         }
                     })
                     getListCategories();
@@ -345,7 +350,7 @@ function Info({ navigation, route }) {
             setTimeout(() => {
                 setProgressAmount(totalInsert/totalCount);
                 setDataisLoaded(true);
-            }, 5000)
+            }, 500)
         }).catch((error) => {
             throw error;
         })
@@ -391,7 +396,7 @@ function Info({ navigation, route }) {
                     setTimeout(() => {
                         setMessage('');
                         setFlag('');
-                    }, 5000);
+                    }, 2000);
                     if(result.status === 1){
                         let newData = {
                             id: userId,
@@ -420,20 +425,20 @@ function Info({ navigation, route }) {
     //     return <Loader />;
     // }
     return (
-        <SafeAreaView style={{backgroundColor: "#20004A"}}>
+        <SafeAreaView style={{backgroundColor: "white"}}>
             {/* <Background /> */}
             <View style={{ ...customstyles.header, paddingHorizontal: 15, display: "flex", flexDirection: "row"}}>
-                <Text style={{...customstyles.titleText, fontSize: 35, color: "white", fontWeight: 'bold', flex: 1, marginLeft: 15, justifyContent: "space-between"}}>My Info</Text>
+                <Text style={{...customstyles.titleText, fontSize: 35, color: "#20004A", fontWeight: 'bold', flex: 1, marginLeft: 15, justifyContent: "space-between"}}>My Info</Text>
                 <View style={{display: "flex", flexDirection: "column"}}>
-                    <Text style={{...customstyles.titleText, color: "#fff", fontWeight: 'bold', marginLeft: 15, alignSelf: "flex-end"}}>{progressAmount*100}%</Text>
-                    <Progress.Bar progress={progressAmount} width={100} animationType= "spring" color="#00ADF0" unfilledColor="cbb8d9" borderColor="white" borderWidth={3} alignSelf="center" />
+                    <Text style={{...customstyles.titleText, color: "#20004A", fontWeight: 'bold', marginLeft: 15, alignSelf: "flex-end"}}>{Math.round(progressAmount*100)}%</Text>
+                    <Progress.Bar progress={progressAmount} width={100} animationType= "spring" color="#00ADF0" unfilledColor="cbb8d9" borderColor="#20004A" borderWidth={3} alignSelf="center" />
                 </View>
             </View>
             <ScrollView style={styles.innerView}>
                 <View style={styles.container}>
                     {
                         flag == '2' ?
-                            <Text style={{ color: 'red', fontWeight: '700', fontSize: 14 }}>{message}</Text> :
+                            <Text style={{ color: 'red', fontWeight: '700', fontSize: 14, margin: 10}}>{message}</Text> :
                             <Text></Text>
                     }
                     <View>
@@ -442,7 +447,7 @@ function Info({ navigation, route }) {
                             foldervisiable && 
                             <ActivityIndicator size="large" color="#663792" />
                                }
-                            <Dialog.Title style={[customstyles.h4, {color: "white"}]}>Add Folder</Dialog.Title>
+                            <Dialog.Title style={[{}]}>Add Folder</Dialog.Title>
                             <Dialog.Description>
                                 To create a new folder, please enter a name for it here.
                             </Dialog.Description>
@@ -470,15 +475,33 @@ function Info({ navigation, route }) {
 
                 <View style={{display: "flex"}}>
                     <View>
-                        <SearchBar
-                        height={50}
-                        style={{marginRight: 10, padding: 5,borderWidth:1,borderColor:"#cdd1ce"}}
-                        fontSize={15}
-                        fontColor="#fdfdfd"
-                        iconColor="#fdfdfd"
-                        cancelIconColor="#fdfdfd"
-                        placeholder="Enter search"
-                        onChangeText={(text) => handleOnChangeText(text)}
+                        <Dropdown
+                        style={[styles.dropdown, {borderColor: '#20004A', borderWidth: 2 }]}
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        inputSearchStyle={styles.inputSearchStyle}
+                        iconStyle={styles.iconStyle}
+                        data={allFoldersNames}
+                        search
+                        maxHeight={300}
+                        labelField="label"
+                        valueField="value"
+                        placeholder={!isFocus ? 'Select Folder': ''}
+                        searchPlaceholder="Search..."
+                        value={allFoldersNames[activeIndex]}
+                        onFocus={() => setIsFocus(false)}
+                        onBlur={() => setIsFocus(false)}
+                        onChange={(item) => {
+                            //(item)
+                        handleOnChangeText(item)}}
+                        renderLeftIcon={() => (
+                            <AntDesign
+                            style={styles.icon}
+                            color={isFocus ? '#20004A' : '#20004A'}
+                            name="Safety"
+                            size={20}
+                            />
+                        )}
                         />
                     </View>
                 
@@ -486,13 +509,13 @@ function Info({ navigation, route }) {
                     {
                         displayFolders.length > 0 &&
                         <View style={[customstyles.row, customstyles.mt10, { justifyContent: "space-between" }]}>
-                                <TouchableOpacity onPress={showDialog} style={[customstyles.btnThemexs, {borderColor: "white"}]}>
-                                    <View style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", alignSelf: "center", borderColor: "white"}}>
-                                        <Ionicons name="add-outline" size={20} color="#fff" />
-                                        <Text style={{color: "#fff"}}> Add Folder</Text>
+                                <TouchableOpacity onPress={showDialog} style={[customstyles.btnThemexs, {borderColor: "#20004A"}]}>
+                                    <View style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", alignSelf: "center", borderColor: "#20004A"}}>
+                                        <Ionicons name="add-outline" size={20} color="#20004A" />
+                                        <Text style={{color: "#20004A"}}> Add Folder</Text>
                                     </View>
                                 </TouchableOpacity>
-                                <View style={{paddingTop: 10}}>
+                                {/*<View style={{paddingTop: 10}}>
                                     <PaginationDot
                                         activeDotColor={'#fff'}
                                         curPage={activeIndex}
@@ -500,20 +523,22 @@ function Info({ navigation, route }) {
                                         maxPage={100}
                                         style={{margin: 10}}
                                     />
-                                </View>
-                                <TouchableOpacity onPress={() => deleteFolder()} style={[customstyles.btnThemexs, {borderColor: "white"}]}>
+                    </View>*/}
+                                <TouchableOpacity onPress={() => deleteFolder()} style={[customstyles.btnThemexs, {borderColor: "#20004A"}]}>
                                     <View style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-                                        <Ionicons name="remove" size={20} color="#fff" />
-                                        <Text style={{color: "#fff"}}> Delete Folder</Text>
+                                        <Ionicons name="remove" size={20} color="#20004A" />
+                                        <Text style={{color: "#20004A"}}> Delete Folder</Text>
                                     </View>
                                 </TouchableOpacity>
                             
                         </View>
                     }
+                    {displayFolders.length > 0 && renderItem(displayFolders[activeIndex], activeIndex )}
                     {
-                        displayFolders.length > 0 &&
+                        /*displayFolders.length > 0 &&
                         <Carousel
                         layout={'default'}
+                        layoutCardOffset={`18`}
                         ref={ref}
                         data={displayFolders}
                         sliderWidth={SLIDER_WIDTH}
@@ -521,7 +546,7 @@ function Info({ navigation, route }) {
                         itemWidth={ITEM_WIDTH}
                         renderItem={renderItem}
                         onSnapToItem={(index) => setActiveIndex(index)}
-                        />
+                        />*/
                     }
                     </View>
                     {/*}
@@ -549,7 +574,7 @@ const styles = StyleSheet.create({
     scrollArea: {
         flex: 1,
         width: "100%",
-        backgroundColor: "white",
+        backgroundColor: "#20004A",
         // paddingTop: StatusBar.currentHeight,
     },
     header: {
@@ -570,14 +595,50 @@ const styles = StyleSheet.create({
     },
     gradientbtn: {
         height:  60,
-        borderRadius: 30,
+        borderRadius: 16,
         // overflow: "hidden",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 5,
-        borderColor: "white", 
+        borderColor: "#20004A", 
         borderWidth: 4
-    }
+    },
+    dropdown: {
+        height: 50,
+        borderColor: 'gray',
+        borderWidth: 0.5,
+        borderRadius: 28,
+        paddingHorizontal: 8,
+        margin: 10
+      },
+      icon: {
+        marginRight: 5,
+      },
+      label: {
+        position: 'absolute',
+        backgroundColor: '#20004A',
+        left: 22,
+        top: 8,
+        zIndex: 999,
+        paddingHorizontal: 8,
+        fontSize: 14,
+      },
+      placeholderStyle: {
+        fontSize: 16,
+        color: "#20004A",
+      },
+      selectedTextStyle: {
+        fontSize: 16,
+        color: "#20004A",
+      },
+      iconStyle: {
+        width: 20,
+        height: 20,
+      },
+      inputSearchStyle: {
+        height: 40,
+        fontSize: 16,
+      }
 });
 export default Info;

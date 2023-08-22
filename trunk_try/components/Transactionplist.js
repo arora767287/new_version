@@ -91,11 +91,11 @@ function Transactionplist({route, navigation}){
             .then(resp => {
                 setisLoading(false)
                 let result = resp;
-                console.log(result);
-                if(true){
-                    list = []
-                    list.push({amount: 10, from: "Hello", to: "Nitya", transaction_date: "01/02/2002"})
-                    setTransactionArr(list);
+                console.log("Transaction page result", result);
+                if(result.data){
+                    //list = []
+                    //list.push({amount: 10, from: "Hello", to: "Nitya", transaction_date: "01/02/2002"})
+                    setTransactionArr(result.data);
                 }
             })
         }
