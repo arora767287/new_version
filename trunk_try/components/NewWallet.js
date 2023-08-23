@@ -115,11 +115,13 @@ function NewWallet({ route, navigation }){
                    setTempBalance(res.funds.available.amount);
                })
            }
-           /*var currData = await linkTokenCreation();
-           setTimeout(() => {
-               setLinkToken(currData.link_token);
-           }, 100);*/
-           Moment.locale('en');
+           var currData = linkTokenCreation().then((result) => {
+                console.log("parsing")
+                console.log(JSON.parse(result));
+                setLinkToken(JSON.parse(result).link_token);
+                console.log(link_token)
+                Moment.locale('en');
+           })
        });
     }, []);
 

@@ -906,11 +906,17 @@ let linkTokenCreation = async() => {
     body: raw,
     redirect: 'follow'
   };
+
+
+
   fetch("https://sandbox.plaid.com/link/token/create", requestOptions)
-    .then(response => {
-      return response.json();
-    })
-}
+  .then(response => response.text())
+  .then((result) => {
+    console.log(result);
+    return result;
+  })
+    
+  }
 
 let setAccessToken = async (public_token) => {
   var myHeaders = new Headers();
@@ -928,6 +934,7 @@ let setAccessToken = async (public_token) => {
     body: raw,
     redirect: 'follow'
   };
+
 
   fetch("https://sandbox.plaid.com/item/public_token/exchange", requestOptions)
     .then(response => {
